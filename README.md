@@ -10,8 +10,10 @@ Every category carries its own tools in a tight orbit around it, so the count is
 without hovering anything. Hovering a category holds the ring still, lights its spoke, and flings those
 tools out to the satellite ring, where they grow, pick up labels and stay tethered to their parent.
 Hovering any one of them lifts the whole set, with the one under the cursor lifting furthest. Clicking a
-category opens a side panel with descriptions and links. A plain directory sits below the map for anyone
-who just wants the list.
+category opens a side panel with descriptions and links. The full directory sits under the map as a
+collapsed bar you can drop open when you want the plain list.
+
+The map is sized off the viewport height (`--stage`), so the whole network is visible without scrolling.
 
 Behind all of it, a constellation of ~60 faint points drifts the opposite way at a third the speed. It is
 decoration only: no pointer events, well below the wires in brightness, and it dims further when a node is
@@ -71,7 +73,10 @@ The hub lands at `https://mrare-cmd.github.io/GreyHub/`.
 
 ## Notes
 
-- A single self-contained `index.html`. The only external request is the Archivo / Instrument Sans webfonts from Google Fonts.
+- `index.html` plus `favicon.svg`. The only external request is the Archivo / Instrument Sans webfonts
+  from Google Fonts.
+- `favicon.svg` is the GreyHub mark redrawn as vector — a node ring around a glowing G on a blue-violet
+  gradient — so it stays sharp at every tab size and costs ~4KB. Replace that one file to change it.
 - The OpEx Dashboard points at the app's own domain rather than a Cloudflare Access login URL — those
   login links carry a short-lived token and stop working within minutes.
 - Respects `prefers-reduced-motion`: the ring holds still and the packets are not created at all.
