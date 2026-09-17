@@ -1,4 +1,4 @@
-<title>MAMF AI Node Network</title>
+<title>MAMF GreyHub</title>
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
@@ -91,18 +91,57 @@ a{color:inherit;text-decoration:none}
     inset 0 -18px 38px rgba(176,196,222,.07),
     0 0 56px rgba(176,196,222,.10),
     0 22px 50px rgba(0,0,0,.5);
-  display:grid;place-content:center;gap:7px;text-align:center;
-  z-index:3;pointer-events:none;
+  display:grid;place-content:center;text-align:center;
+  overflow:hidden;z-index:3;pointer-events:none;
   transition:opacity .45s ease, transform .5s cubic-bezier(.2,.7,.25,1);
 }
-.core b{
-  display:block;font-family:var(--f-display);font-weight:600;
-  font-size:calc(var(--stage) * .032);letter-spacing:.2em;color:var(--ink);line-height:1;
+
+/* the wordmark. "Gr" and "steel" never move; only the two middle glyphs change,
+   which is what makes the flip read as one word rather than two. */
+.core .mark{
+  display:block;white-space:nowrap;
+  font-family:var(--f-display);font-weight:600;
+  font-size:calc(var(--stage) * .029);letter-spacing:.035em;
+  color:var(--ink);line-height:1;
 }
-.core i{
-  display:block;font-style:normal;font-size:calc(var(--stage) * .0145);
-  letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);
-  font-variant-numeric:tabular-nums;
+.swap{
+  display:inline-grid;                 /* both glyph pairs share one cell, so the
+                                          slot is as wide as the wider of the two */
+  vertical-align:baseline;
+}
+.swap > span{
+  grid-area:1/1;justify-self:center;
+  transition:opacity .36s ease,
+             transform .52s cubic-bezier(.32,.78,.24,1),
+             filter .36s ease,
+             text-shadow .5s ease;
+}
+.swap .s1{opacity:1;transform:none;filter:none}
+.swap .s2{
+  opacity:0;transform:translateY(.46em) scale(.86);filter:blur(5px);
+  color:var(--accent);
+}
+.core.ai .swap .s1{opacity:0;transform:translateY(-.46em) scale(.86);filter:blur(5px)}
+.core.ai .swap .s2{
+  opacity:1;transform:none;filter:none;
+  text-shadow:0 0 22px rgba(176,196,222,.6);
+}
+
+/* a band of light crosses the glass as the glyphs turn over */
+.core::after{
+  content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:linear-gradient(104deg,
+    rgba(225,236,249,0) 40%,
+    rgba(225,236,249,.26) 50%,
+    rgba(225,236,249,0) 60%);
+  opacity:0;transform:translateX(-130%);
+}
+.core.sweep::after{animation:coresweep 1.15s cubic-bezier(.36,0,.18,1)}
+@keyframes coresweep{
+  0%{opacity:0;transform:translateX(-130%)}
+  16%{opacity:1}
+  84%{opacity:1}
+  100%{opacity:0;transform:translateX(130%)}
 }
 .stage.focused .core{opacity:0;transform:translate(-50%,-50%) scale(.84)}
 
@@ -275,7 +314,9 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
 <section class="mapsec wrap" aria-label="Tool network">
   <div class="stage" id="stage">
     <svg id="map" viewBox="-520 -520 1040 1040" role="img" aria-label="Network map of tool categories"></svg>
-    <div class="core" id="core" aria-hidden="true"><b>MAMF AI</b><i id="coreSub"></i></div>
+    <div class="core" id="core" aria-hidden="true">
+      <b class="mark">Gr<span class="swap"><span class="s1">ey</span><span class="s2">AI</span></span>steel</b>
+    </div>
   </div>
   <p class="hint" id="hint">Hover a node</p>
 </section>
@@ -752,7 +793,6 @@ CATEGORIES.forEach(function(c){
   c.tools.forEach(function(t){ if (t.url) { if (t.gated) gated++; else live++; } });
 });
 document.getElementById("count").textContent = (live + gated) + " tools / " + CATEGORIES.length + " categories";
-document.getElementById("coreSub").textContent = (live + gated) + " tools";
 document.getElementById("dirCount").textContent =
   (live + gated) + " of " + total + " linked · " + voids + " categories empty";
 document.getElementById("foot").textContent = "Edit the CATEGORIES block in index.html to add a tool.";
@@ -789,6 +829,20 @@ CATEGORIES.forEach(function(cat){
     rows.appendChild(row);
   });
 });
+
+/* ---------- the wordmark turns over: Greysteel <-> GrAIsteel ----------
+   The light band starts first and the glyphs change as it passes the middle, so
+   the two halves of the effect read as one event rather than two. */
+(function(){
+  var core = document.getElementById("core");
+  if (reduce) return;
+  var ai = false;
+  setInterval(function(){
+    core.classList.add("sweep");
+    setTimeout(function(){ ai = !ai; core.classList.toggle("ai", ai); }, 440);
+    setTimeout(function(){ core.classList.remove("sweep"); }, 1250);
+  }, 5200);
+})();
 
 /* ---------- directory dropdown: close on outside click and on Escape ---------- */
 var dir = document.getElementById("dir");

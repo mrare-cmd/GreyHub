@@ -2,7 +2,11 @@
 
 The hub for every internal tool the team has built. One page, no build step, no dependencies.
 
-A frosted glass core reading `MAMF AI` sits at the centre. Each of the six categories is wired to the
+A frosted glass core sits at the centre carrying the wordmark, which turns over between **Greysteel** and
+**GrAIsteel** every five seconds. Only the two middle glyphs change — `Gr` and `steel` never move, and the
+slot is sized to the wider of the two pairs, so the word holds exactly the same width in both states. A
+band of light crosses the glass first and the glyphs change as it passes the middle, so the two halves
+read as one event. Each of the six categories is wired to the
 core by a single spoke — they do not cross-link to each other — on a ring that turns once every ten
 minutes. Data packets run the spokes in and out of the core. Every category carries its own tools in a
 tight orbit around it, so the count is readable at a glance without hovering anything.
