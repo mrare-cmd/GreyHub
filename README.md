@@ -10,8 +10,8 @@ Every category carries its own tools in a tight orbit around it, so the count is
 without hovering anything. Hovering a category holds the ring still, lights its spoke, and flings those
 tools out to the satellite ring, where they grow, pick up labels and stay tethered to their parent.
 Hovering any one of them lifts the whole set, with the one under the cursor lifting furthest. Clicking a
-category opens a side panel with descriptions and links. The full directory sits under the map as a
-collapsed bar you can drop open when you want the plain list.
+category opens a side panel with descriptions and links. The full directory is a dropdown off the
+top-right of the masthead, so it overlays rather than taking room from the map.
 
 The map is sized off the viewport height (`--stage`), so the whole network is visible without scrolling.
 
