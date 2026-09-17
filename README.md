@@ -4,16 +4,22 @@ The hub for every internal tool the team has built. One page, no build step, no 
 
 A frosted glass core reading `MAMF AI` sits at the centre. Each of the six categories is wired to the
 core by a single spoke — they do not cross-link to each other — on a ring that turns once every ten
-minutes. Data packets run the spokes in and out of the core.
+minutes. Data packets run the spokes in and out of the core. Every category carries its own tools in a
+tight orbit around it, so the count is readable at a glance without hovering anything.
 
-Every category carries its own tools in a tight orbit around it, so the count is readable at a glance
-without hovering anything. Hovering a category holds the ring still, lights its spoke, and flings those
-tools out to the satellite ring, where they grow, pick up labels and stay tethered to their parent.
-Hovering any one of them lifts the whole set, with the one under the cursor lifting furthest. Clicking a
-category opens a side panel with descriptions and links. The full directory is a dropdown off the
-top-right of the masthead, so it overlays rather than taking room from the map.
+**Hovering a category promotes it.** It swings to the dead centre of the map and grows; its tools fly out
+to ring it; the core yields and fades; and the other five categories swing round the circle to a tight
+104° arc on the opposite side, shrinking as they go. Everything is interpolated frame by frame, so the
+swing reads as one continuous motion in both directions. Hovering a tool lifts the whole set, the one
+under the cursor furthest.
 
-The map is sized off the viewport height (`--stage`), so the whole network is visible without scrolling.
+**Clicking a category flashes its tools** — an expanding pulse ring and a double blink — and does nothing
+else. There is no side panel. The only click-through targets are the tools themselves, which open in a
+new tab.
+
+The full directory is a dropdown off the top-right of the masthead, so it overlays rather than taking
+room from the map. The map is sized off the viewport height (`--stage`), so the whole network is visible
+without scrolling.
 
 Behind all of it, a constellation of ~60 faint points drifts the opposite way at a third the speed. It is
 decoration only: no pointer events, well below the wires in brightness, and it dims further when a node is
@@ -41,11 +47,13 @@ Everything lives in the `CATEGORIES` block near the top of the `<script>` in `in
 - Leave `url:""` and the tool renders as **link pending** — useful for parking something before it ships.
 - A category with an empty `tools:[]` still gets a node; it renders hollow and reads as unmapped.
 - Categories are spaced evenly around the ring automatically — order in the array is clockwise from the top.
-- The geometry block below the config controls everything spatial: `R_CAT` / `R_SAT` / `R_MINI` are the
-  category ring, the pushed-out ring, and the little orbit a tool keeps at rest; `CAT_R` / `SAT_R` /
-  `MINI_R` are the three bead sizes; `SPIN` and `MINI_SPIN` are revolution times in seconds.
-- A tool's rest position and its pushed-out position are interpolated every frame by a smoothed `t`, so
-  the flight out and back is one continuous motion rather than two states.
+- The geometry block below the config controls everything spatial. `R_CAT` / `R_MINI` set the resting
+  layout; `FOCUS_R`, `BACK_R`, `R_BACK`, `BACK_ARC` and `R_TOOL` set the focused one — how big the
+  promoted category gets, how small and how far out the others go, how wide their arc is, and where the
+  tools ring the centre. `SPIN` and `MINI_SPIN` are revolution times in seconds.
+- Every position is interpolated toward a target each frame (categories in polar coordinates, so they
+  swing along the circle rather than cutting across it), which is why the layout reads as one motion
+  instead of two states.
 
 ## Current contents
 
@@ -82,7 +90,8 @@ The hub lands at `https://mrare-cmd.github.io/GreyHub/`.
 - The OpEx Dashboard points at the app's own domain rather than a Cloudflare Access login URL — those
   login links carry a short-lived token and stop working within minutes.
 - Respects `prefers-reduced-motion`: the ring holds still and the packets are not created at all.
-- Keyboard accessible — each node is focusable, so tabbing through the map reveals each category's tools.
+- Keyboard accessible — each node is focusable, so tabbing through the map promotes each category in
+  turn; Enter or Space flashes its tools.
 - One `requestAnimationFrame` loop drives everything positional: the spoke group's rotation, each
   category's place on the ring, each tool's interpolated position and radius, and the tether geometry.
   Nothing rotates that carries text, so labels never need counter-rotating.
