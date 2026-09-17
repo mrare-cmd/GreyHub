@@ -135,7 +135,7 @@ a{color:inherit;text-decoration:none}
 .bead{fill:var(--accent-hot)}
 .bead.hollow{fill:rgba(176,196,222,.14);stroke:rgba(176,196,222,.42);stroke-width:1.2}
 .cat-bead{transition:r .45s cubic-bezier(.2,.7,.25,1)}
-.cat.on .cat-bead{r:23}
+.cat.on .cat-bead{r:27}
 .ringlet{fill:none;stroke:rgba(176,196,222,.5);stroke-width:1;stroke-dasharray:2 6;
   opacity:0;transition:opacity .45s ease}
 .cat.on .ringlet{opacity:1}
@@ -151,25 +151,25 @@ a{color:inherit;text-decoration:none}
 .lbl rect{fill:rgba(255,255,255,.06);stroke:rgba(255,255,255,.11);stroke-width:1}
 .lbl.flat rect{fill:rgba(6,7,10,.6);stroke:none}
 .lbl.cat-lbl text{
-  font-family:var(--f-display);font-weight:600;font-size:16px;
+  font-family:var(--f-display);font-weight:600;font-size:17px;
   letter-spacing:.18em;fill:var(--ink-2);transition:fill .4s ease;
 }
 .cat.on .lbl.cat-lbl text{fill:var(--ink)}
 .lbl.cat-num text{
-  font-family:var(--f-display);font-weight:500;font-size:11.5px;letter-spacing:.22em;
+  font-family:var(--f-display);font-weight:500;font-size:12.5px;letter-spacing:.22em;
   fill:var(--ink-3);font-variant-numeric:tabular-nums;transition:fill .4s ease;
 }
 .cat.on .lbl.cat-num text{fill:var(--accent)}
 
 .lbl.sat-lbl{
-  opacity:0;transform:translate(0px,36px);
+  opacity:0;transform:translate(0px,42px);
   transition:transform .4s cubic-bezier(.2,.7,.25,1), opacity .3s ease;
 }
 .cat.on .lbl.sat-lbl{opacity:1;transition:transform .4s cubic-bezier(.2,.7,.25,1), opacity .3s ease .22s}
-.cat.reaching .lbl.sat-lbl{transform:translate(0px,40px)}
-.satwrap:hover .lbl.sat-lbl,.satwrap:focus-visible .lbl.sat-lbl{transform:translate(0px,46px)}
-.lbl.sat-lbl text{font-family:var(--f-body);font-weight:400;font-size:14px;fill:var(--ink-2);
-  transition:fill .3s ease}
+.cat.reaching .lbl.sat-lbl{transform:translate(0px,46px)}
+.satwrap:hover .lbl.sat-lbl,.satwrap:focus-visible .lbl.sat-lbl{transform:translate(0px,52px)}
+.lbl.sat-lbl text{font-family:var(--f-display);font-weight:500;font-size:16px;letter-spacing:.035em;
+  fill:var(--ink-2);transition:fill .3s ease}
 .satwrap:hover .lbl.sat-lbl text{fill:var(--ink)}
 .satwrap:hover .lbl.sat-lbl rect{fill:rgba(176,196,222,.14);stroke:rgba(176,196,222,.4)}
 .satwrap.locked .lbl.sat-lbl text{fill:var(--ink-3)}
@@ -346,9 +346,9 @@ var R_CAT     = 318;  /* the circumference every category sits on        */
 var R_SAT     = 442;  /* where tools land once pushed out                */
 var R_MINI    = 40;   /* how far a tool orbits its category at rest      */
 var R_CORE_IN = 104;  /* spokes start here, tucked under the glass core  */
-var CAT_R     = 17;   /* category bead                                   */
-var SAT_R     = 14;   /* tool bead, pushed out                           */
-var MINI_R    = 5.5;  /* tool bead, at rest in its little orbit          */
+var CAT_R     = 20;   /* category bead                                   */
+var SAT_R     = 17;   /* tool bead, pushed out                           */
+var MINI_R    = 7;    /* tool bead, at rest in its little orbit          */
 var FAN       = 25;   /* degrees between tools once pushed out           */
 var SPIN      = 620;  /* seconds per revolution of the main ring         */
 var MINI_SPIN = 95;   /* seconds per revolution of a tool around its own */
@@ -533,8 +533,8 @@ CATEGORIES.forEach(function(cat, i){
     opacity:n ? 1 : .45 }));
   chold.appendChild(el("circle", { class:"bead cat-bead" + (n ? "" : " hollow"), cx:0, cy:0,
     r:n ? CAT_R : CAT_R - 4 }));
-  chold.appendChild(label("cat-lbl flat", 66, cat.name.toUpperCase()));
-  chold.appendChild(label("cat-num flat", 88, n ? String(n).padStart(2, "0") : "—"));
+  chold.appendChild(label("cat-lbl flat", 70, cat.name.toUpperCase()));
+  chold.appendChild(label("cat-num flat", 92, n ? String(n).padStart(2, "0") : "—"));
   var hit = el("circle", { class:"hit", cx:0, cy:0, r:64, tabindex:"0", role:"button" });
   hit.setAttribute("aria-label", cat.name + ", " + n + (n === 1 ? " tool" : " tools"));
   chold.appendChild(hit);
