@@ -7,11 +7,11 @@ core by a single spoke — they do not cross-link to each other — on a ring th
 minutes. Data packets run the spokes in and out of the core. Every category carries its own tools in a
 tight orbit around it, so the count is readable at a glance without hovering anything.
 
-**Hovering a category promotes it.** It swings to the dead centre of the map and grows; its tools fly out
-to ring it; the core yields and fades; and the other five categories swing round the circle to a tight
-104° arc on the opposite side, shrinking as they go. Everything is interpolated frame by frame, so the
-swing reads as one continuous motion in both directions. Hovering a tool lifts the whole set, the one
-under the cursor furthest.
+**Hovering a category promotes it.** It draws in toward the middle of the map (to `R_FOCUS`, not all the
+way to the centre) and grows; its tools swing out into a wide orbit around it; the core fades and yields;
+and the other five categories swing round the circle to a tight 104° arc on the opposite side, shrinking
+as they go. Everything is interpolated frame by frame, so it reads as one continuous motion in both
+directions. Hovering a tool lifts the whole set, the one under the cursor furthest.
 
 **Clicking a category flashes its tools** — an expanding pulse ring and a double blink — and does nothing
 else. There is no side panel. The only click-through targets are the tools themselves, which open in a
@@ -48,7 +48,7 @@ Everything lives in the `CATEGORIES` block near the top of the `<script>` in `in
 - A category with an empty `tools:[]` still gets a node; it renders hollow and reads as unmapped.
 - Categories are spaced evenly around the ring automatically — order in the array is clockwise from the top.
 - The geometry block below the config controls everything spatial. `R_CAT` / `R_MINI` set the resting
-  layout; `FOCUS_R`, `BACK_R`, `R_BACK`, `BACK_ARC` and `R_TOOL` set the focused one — how big the
+  layout; `R_FOCUS`, `FOCUS_R`, `BACK_R`, `R_BACK`, `BACK_ARC` and `TOOL_ORBIT` set the focused one — how big the
   promoted category gets, how small and how far out the others go, how wide their arc is, and where the
   tools ring the centre. `SPIN` and `MINI_SPIN` are revolution times in seconds.
 - Every position is interpolated toward a target each frame (categories in polar coordinates, so they

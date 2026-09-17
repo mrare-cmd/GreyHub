@@ -46,6 +46,8 @@ body{
 a{color:inherit;text-decoration:none}
 ::selection{background:rgba(176,196,222,.22)}
 :focus-visible{outline:1px solid var(--accent);outline-offset:3px;border-radius:3px}
+/* the map shows focus by promoting the node itself, so it never needs an outline box */
+#map :focus,#map :focus-visible,#map a:focus{outline:none}
 
 .wrap{max-width:1240px;margin:0 auto;padding-inline:28px}
 
@@ -81,8 +83,9 @@ a{color:inherit;text-decoration:none}
   border-radius:50%;
   background:rgba(255,255,255,.055);
   border:1px solid rgba(255,255,255,.16);
-  -webkit-backdrop-filter:blur(13px) saturate(180%);
-  backdrop-filter:blur(13px) saturate(180%);
+  -webkit-backdrop-filter:blur(10px) saturate(170%);
+  backdrop-filter:blur(10px) saturate(170%);
+  will-change:opacity,transform;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.26),
     inset 0 -18px 38px rgba(176,196,222,.07),
@@ -101,7 +104,7 @@ a{color:inherit;text-decoration:none}
   letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);
   font-variant-numeric:tabular-nums;
 }
-.stage.focused .core{opacity:0;transform:translate(-50%,-50%) scale(.74)}
+.stage.focused .core{opacity:0;transform:translate(-50%,-50%) scale(.84)}
 
 /* ---------- background constellation: atmosphere, never a connection ---------- */
 .sky{pointer-events:none;transition:opacity .5s ease}
@@ -315,11 +318,12 @@ var CAT_R     = 20;   /* category bead, at rest on the ring              */
 var MINI_R    = 7;    /* tool bead, at rest in its little orbit          */
 
 /* --- focus: one category takes the middle, the rest swing to the back --- */
-var FOCUS_R   = 46;   /* the focused category's bead                     */
+var R_FOCUS   = 170;  /* how far in the focused category comes           */
+var FOCUS_R   = 40;   /* the focused category's bead                     */
 var BACK_R    = 8.5;  /* every other category, demoted                   */
 var R_BACK    = 448;  /* the arc they swing out to                       */
 var BACK_ARC  = 104;  /* degrees that arc spans                          */
-var R_TOOL    = 252;  /* where the focused category's tools ring it      */
+var TOOL_ORBIT = 196; /* how wide its tools orbit it once promoted       */
 var SAT_R     = 17;   /* tool bead, once it has arrived                  */
 var SPIN      = 620;  /* seconds per revolution of the main ring         */
 var MINI_SPIN = 95;   /* seconds per revolution of a tool around its own */
@@ -385,12 +389,17 @@ map.appendChild(sky);
   }
   sky.appendChild(lines);
   var dots = el("g", {});
-  sp.forEach(function(p){
+  sp.forEach(function(p, i){
     var c = el("circle", { class:"sky-dot", cx:p[0].toFixed(1), cy:p[1].toFixed(1),
       r:(1.1 + Math.random() * 1.5).toFixed(2) });
-    if (!reduce){
+    /* only a third of them twinkle — sixty permanently animating nodes is a lot
+       of compositor work for an effect nobody is watching */
+    if (!reduce && i % 3 === 0){
       c.style.animationDuration = (4 + Math.random() * 7).toFixed(1) + "s";
       c.style.animationDelay = (-Math.random() * 9).toFixed(1) + "s";
+    } else {
+      c.style.animation = "none";
+      c.style.opacity = (.3 + Math.random() * .42).toFixed(2);
     }
     dots.appendChild(c);
   });
@@ -455,8 +464,13 @@ CATEGORIES.forEach(function(cat, i){
 
   var state = {
     g:g, theta:theta, n:n, sats:[], wire:null, reaching:false, target:0, pt:[0,0],
-    curR:R_CAT, curA:theta, bead:n ? CAT_R : CAT_R - 4, scale:1, lblY:70, numY:92
+    curR:R_CAT, curA:theta, bead:n ? CAT_R : CAT_R - 4, scale:1, lblY:70, numY:92,
+    w:{}
   };
+
+  /* Hover catchment. It goes in FIRST so the tools paint on top of it and keep
+     receiving their own clicks — on top, it silently swallows every link. */
+  g.appendChild(el("circle", { class:"focusfield", cx:0, cy:0, r:340 }));
 
   /* tether from the category out to each of its tools; geometry set per frame */
   if (n > 0){
@@ -489,8 +503,8 @@ CATEGORIES.forEach(function(cat, i){
     var s = {
       hold:hold, bead:bd, glow:glow,
       miniBase:(360 / n) * j - 90,  /* where it sits in its little orbit          */
-      ringA:-90 + j * (360 / n),    /* where it lands once its parent takes middle */
-      t:0, rNow:MINI_R, hovered:false
+      ringA:-90 + j * (360 / n),    /* where it swings to once its parent is up    */
+      t:0, rNow:MINI_R, hovered:false, w:{}
     };
     state.sats.push(s);
 
@@ -502,8 +516,6 @@ CATEGORIES.forEach(function(cat, i){
   });
 
   /* the category node */
-  g.appendChild(el("circle", { class:"focusfield", cx:0, cy:0, r:330 }));
-
   var chold = el("g", { class:"cat-hold" });
   state.ringEl = el("circle", { class:"ringlet", cx:0, cy:0, r:R_MINI - 4 });
   chold.appendChild(state.ringEl);
@@ -541,41 +553,59 @@ CATEGORIES.forEach(function(cat, i){
    One category can hold the middle. When it does it grows, its tools ring it,
    and the other five swing around to a small arc on the opposite side. */
 var spinA = 0, skyA = 0, miniA = 0, held = false, last = null, focusIdx = null;
+var skyDue = 0, meshDue = 0;
+
+/* Write an attribute only when it has actually moved. At rest this skips almost
+   every write, which is most of what was making the map stutter. */
+function putNum(el, w, key, attr, val, eps){
+  if (w[key] !== undefined && Math.abs(w[key] - val) < eps) return;
+  w[key] = val;
+  el.setAttribute(attr, val.toFixed(2));
+}
+function putStr(el, w, key, attr, str){
+  if (w[key] === str) return;
+  w[key] = str;
+  el.setAttribute(attr, str);
+}
 
 function frame(now){
   if (last === null) last = now;
   var dt = Math.min((now - last) / 1000, .05); last = now;
   var kFast = 1 - Math.exp(-dt / .16);   /* tools */
-  var kSlow = 1 - Math.exp(-dt / .30);   /* categories, so the swing reads */
+  var kSlow = 1 - Math.exp(-dt / .26);   /* categories */
 
   if (!reduce){
     if (!held) spinA = (spinA + dt * 360 / SPIN) % 360;
     miniA = (miniA + dt * 360 / MINI_SPIN) % 360;
     skyA = (skyA - dt * 360 / (SPIN * 3)) % 360;
-    sky.setAttribute("transform", "rotate(" + skyA.toFixed(3) + ")");
   }
-  mesh.setAttribute("transform", "rotate(" + spinA.toFixed(3) + ")");
+  /* The backdrop and the spoke layer turn far too slowly to need 60fps, and
+     rotating either group repaints every child, so they get their own cadence. */
+  skyDue -= dt;
+  if (skyDue <= 0){ sky.setAttribute("transform", "rotate(" + skyA.toFixed(2) + ")"); skyDue = .25; }
+  meshDue -= dt;
+  if (meshDue <= 0){ mesh.setAttribute("transform", "rotate(" + spinA.toFixed(2) + ")"); meshDue = .12; }
 
   var backMid = focusIdx === null ? 0 : cats[focusIdx].theta + spinA + 180;
   var backStep = BACK_ARC / (cats.length - 2);
 
   for (var i = 0; i < cats.length; i++){
-    var c = cats[i], tR, tA, tBead, tScale, tLblY, tNumY;
+    var c = cats[i], w = c.w, tR, tA, tBead, tScale, tLblY, tNumY;
 
     if (focusIdx === null){                      /* at rest, out on the ring */
       tR = R_CAT; tA = c.theta + spinA;
       tBead = c.n ? CAT_R : CAT_R - 4;
       tScale = 1; tLblY = 70; tNumY = 92;
-    } else if (focusIdx === i){                  /* holding the middle */
-      tR = 0; tA = c.curA;
+    } else if (focusIdx === i){                  /* drawn in toward the middle */
+      tR = R_FOCUS; tA = c.theta + spinA;
       tBead = FOCUS_R;
-      tScale = 1.6; tLblY = 96; tNumY = 130;
+      tScale = 1.38; tLblY = 92; tNumY = 124;
     } else {                                     /* swung round to the back */
       var kk = (i - focusIdx + cats.length) % cats.length;   /* 1..5, order kept */
       tR = R_BACK;
       tA = backMid - BACK_ARC / 2 + (kk - 1) * backStep;
       tBead = BACK_R;
-      tScale = .6; tLblY = 24; tNumY = 38;
+      tScale = .7; tLblY = 26; tNumY = 42;
     }
 
     c.curA += (((tA - c.curA + 540) % 360) - 180) * kSlow;   /* shortest way round */
@@ -587,38 +617,44 @@ function frame(now){
 
     var cp = pol(c.curR, c.curA);
     c.pt = cp;
-    c.chold.setAttribute("transform", "translate(" + cp[0].toFixed(2) + "," + cp[1].toFixed(2) + ")");
-    c.beadEl.setAttribute("r", c.bead.toFixed(2));
-    c.glowEl.setAttribute("r", (c.bead * 3.4).toFixed(2));
-    c.ringEl.setAttribute("r", (c.bead * 1.8).toFixed(2));
-    c.hitEl.setAttribute("r", Math.max(c.bead * 2.9, 42).toFixed(2));
-    c.lblEl.setAttribute("transform",
+    putStr(c.chold, w, "ct", "transform",
+      "translate(" + cp[0].toFixed(1) + "," + cp[1].toFixed(1) + ")");
+    putNum(c.beadEl, w, "br", "r", c.bead, .05);
+    putNum(c.glowEl, w, "gr", "r", c.bead * 3.4, .2);
+    putNum(c.ringEl, w, "rr", "r", c.bead * 1.8, .2);
+    putNum(c.hitEl,  w, "hr", "r", Math.max(c.bead * 2.9, 42), .5);
+    putStr(c.lblEl, w, "lt", "transform",
       "translate(0," + c.lblY.toFixed(1) + ") scale(" + c.scale.toFixed(3) + ")");
-    c.numEl.setAttribute("transform",
+    putStr(c.numEl, w, "nt", "transform",
       "translate(0," + c.numY.toFixed(1) + ") scale(" + c.scale.toFixed(3) + ")");
 
-    var d = "";
+    var d = "", moving = false;
     for (var j = 0; j < c.sats.length; j++){
-      var s = c.sats[j];
-      s.t += (c.target - s.t) * kFast;
-      var e = s.t * s.t * (3 - 2 * s.t);          /* smoothstep the flight */
+      var s2 = c.sats[j];
+      s2.t += (c.target - s2.t) * kFast;
+      if (s2.t > .002 || c.target > 0) moving = true;
+      var e = s2.t * s2.t * (3 - 2 * s2.t);      /* smoothstep the flight */
 
-      var rest = pol(R_MINI, s.miniBase + miniA); /* its little orbit */
-      var rx = cp[0] + rest[0], ry = cp[1] + rest[1];
-      var out = pol(R_TOOL, s.ringA + spinA);     /* its place once the parent centres */
-      var x = rx + (out[0] - rx) * e, y = ry + (out[1] - ry) * e;
-      s.hold.setAttribute("transform", "translate(" + x.toFixed(2) + "," + y.toFixed(2) + ")");
+      /* Both ends are offsets from the parent, so a tool always orbits its own
+         category — tight at rest, wide once that category has been promoted. */
+      var ri = pol(R_MINI, s2.miniBase + miniA);
+      var ro = pol(TOOL_ORBIT, s2.ringA + spinA);
+      var x = cp[0] + ri[0] + (ro[0] - ri[0]) * e;
+      var y = cp[1] + ri[1] + (ro[1] - ri[1]) * e;
+      putStr(s2.hold, s2.w, "ht", "transform",
+        "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ")");
 
       var rt = MINI_R + (SAT_R - MINI_R) * e;
-      if (s.hovered) rt = SAT_R * 1.5;
+      if (s2.hovered) rt = SAT_R * 1.5;
       else if (c.reaching) rt = SAT_R * 1.18;
-      s.rNow += (rt - s.rNow) * kFast;
-      s.bead.setAttribute("r", s.rNow.toFixed(2));
-      s.glow.setAttribute("r", (s.rNow * 3.2).toFixed(2));
+      s2.rNow += (rt - s2.rNow) * kFast;
+      putNum(s2.bead, s2.w, "br", "r", s2.rNow, .05);
+      putNum(s2.glow, s2.w, "gr", "r", s2.rNow * 3.2, .3);
 
-      d += " M " + cp[0].toFixed(2) + " " + cp[1].toFixed(2) + " L " + x.toFixed(2) + " " + y.toFixed(2);
+      d += " M " + cp[0].toFixed(1) + " " + cp[1].toFixed(1) +
+           " L " + x.toFixed(1) + " " + y.toFixed(1);
     }
-    if (c.wire) c.wire.setAttribute("d", d.trim());
+    if (c.wire && moving) putStr(c.wire, w, "d", "d", d.trim());
   }
   requestAnimationFrame(frame);
 }
