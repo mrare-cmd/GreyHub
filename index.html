@@ -104,10 +104,10 @@ a{color:inherit;text-decoration:none}
 }
 .stage.focused .core{opacity:.5}
 
-/* ---------- mesh ---------- */
-.chord{fill:none;stroke:var(--wire);stroke-width:1;transition:stroke .45s ease,stroke-width .45s ease}
-.chord.lit{stroke:var(--wire-hot);stroke-width:1.3}
-#map.focused .chord:not(.lit){stroke:rgba(176,196,222,.055)}
+/* ---------- spokes: every category wired to the core, nothing else ---------- */
+.spoke{fill:none;stroke:var(--wire);stroke-width:1;transition:stroke .45s ease,stroke-width .45s ease}
+.spoke.lit{stroke:var(--wire-hot);stroke-width:1.4}
+#map.focused .spoke:not(.lit){stroke:rgba(176,196,222,.05)}
 
 .packet{fill:var(--accent-hot)}
 #map.focused .packet{opacity:.3}
@@ -133,7 +133,10 @@ a{color:inherit;text-decoration:none}
 .sat{opacity:0;pointer-events:none;transition:opacity .4s ease}
 .cat.on .sat{opacity:1;pointer-events:auto}
 .satwrap{cursor:pointer}
-.satwrap:hover .bead{r:12}
+/* hovering one tool lifts the whole set; the one under the cursor lifts furthest */
+.cat.reaching .sat .bead{r:13}
+.satwrap:hover .bead,.satwrap:focus-visible .bead{r:17}
+.satwrap:hover .glow,.satwrap:focus-visible .glow{opacity:1.5}
 
 /* labels */
 .lbl text{text-anchor:middle;dominant-baseline:central}
@@ -149,8 +152,14 @@ a{color:inherit;text-decoration:none}
   fill:var(--ink-3);font-variant-numeric:tabular-nums;transition:fill .4s ease;
 }
 .cat.on .lbl.cat-num text{fill:var(--accent)}
-.lbl.sat-lbl text{font-family:var(--f-body);font-weight:400;font-size:15px;fill:var(--ink)}
-.satwrap.locked .lbl.sat-lbl text{fill:var(--ink-2)}
+.lbl.sat-lbl{transform:translate(0px,31px);transition:transform .35s cubic-bezier(.2,.7,.25,1)}
+.cat.reaching .lbl.sat-lbl{transform:translate(0px,35px)}
+.satwrap:hover .lbl.sat-lbl,.satwrap:focus-visible .lbl.sat-lbl{transform:translate(0px,40px)}
+.lbl.sat-lbl text{font-family:var(--f-body);font-weight:400;font-size:15px;fill:var(--ink-2);
+  transition:fill .3s ease}
+.satwrap:hover .lbl.sat-lbl text{fill:var(--ink)}
+.satwrap:hover .lbl.sat-lbl rect{fill:rgba(176,196,222,.14);stroke:rgba(176,196,222,.4)}
+.satwrap.locked .lbl.sat-lbl text{fill:var(--ink-3)}
 
 .hit{fill:transparent;pointer-events:all;cursor:pointer}
 
@@ -313,11 +322,12 @@ var CATEGORIES = [
   { name:"Miscellaneous", blurb:"Everything that does not belong to one desk yet.", tools:[] }
 ];
 
-var R_CAT   = 312;   /* the one circumference every category sits on */
-var R_SAT   = 424;   /* where a category's tools are pushed out to   */
-var FAN     = 26;    /* degrees between tools                        */
-var SPIN    = 620;   /* seconds for one revolution                   */
-var PACKETS = 16;    /* how much traffic rides the wires             */
+var R_CAT    = 312;  /* the one circumference every category sits on  */
+var R_SAT    = 424;  /* where a category's tools are pushed out to    */
+var R_CORE_IN = 96;  /* spokes start here, tucked under the glass core */
+var FAN      = 26;   /* degrees between tools                         */
+var SPIN     = 620;  /* seconds for one revolution                    */
+var PACKETS  = 12;   /* how much traffic rides the spokes             */
 
 var NS = "http://www.w3.org/2000/svg";
 var XL = "http://www.w3.org/1999/xlink";
@@ -360,23 +370,21 @@ var marks = el("g", { class:"marks" });
 map.appendChild(mesh);
 map.appendChild(marks);
 
-/* ---------- wires between every pair of categories ---------- */
+/* ---------- one spoke per category, core outward; nothing cross-links ---------- */
 var STEP = 360 / CATEGORIES.length;
 var pts = CATEGORIES.map(function(c, i){ return pol(R_CAT, -90 + i * STEP); });
-var chordEls = [];
-for (var a = 0; a < pts.length; a++){
-  for (var b = a + 1; b < pts.length; b++){
-    var p = el("path", { class:"chord", id:"ch" + a + "_" + b, d:"M " + fmt(pts[a]) + " L " + fmt(pts[b]) });
-    p.dataset.a = a; p.dataset.b = b;
-    mesh.appendChild(p);
-    chordEls.push(p);
-  }
-}
+var spokeEls = CATEGORIES.map(function(c, i){
+  var theta = -90 + i * STEP;
+  var p = el("path", { class:"spoke", id:"sp" + i,
+    d:"M " + fmt(pol(R_CORE_IN, theta)) + " L " + fmt(pol(R_CAT - 18, theta)) });
+  mesh.appendChild(p);
+  return p;
+});
 
-/* ---------- traffic on the wires ---------- */
+/* ---------- traffic running the spokes in and out of the core ---------- */
 if (!reduce){
   for (var k = 0; k < PACKETS; k++){
-    var src = chordEls[Math.floor(Math.random() * chordEls.length)];
+    var src = spokeEls[k % spokeEls.length];
     var dur = (3.4 + Math.random() * 4.4).toFixed(2);
     var begin = (-Math.random() * dur).toFixed(2) + "s";
     var dot = el("circle", { class:"packet", r:(1.8 + Math.random() * 1.5).toFixed(1), opacity:"0" });
@@ -430,13 +438,19 @@ CATEGORIES.forEach(function(cat, i){
     var hold = el("g", {});
     var sat = el("g", { class:"sat" });
     sat.style.transitionDelay = (120 + j * 70) + "ms";
-    bead(sat, 8.5, !tool.url);
+    bead(sat, 10, !tool.url);
     sat.appendChild(label("sat-lbl", 30, tool.name + (tool.gated ? "   ○" : "")));
     sat.appendChild(el("circle", { class:"hit", cx:0, cy:0, r:42 }));
     hold.appendChild(sat);
     wrap.appendChild(hold);
     g.appendChild(wrap);
     holders.push({ g:hold, r:R_SAT, a:aj });
+
+    /* hovering any one tool lifts every tool in the set */
+    wrap.addEventListener("pointerenter", function(){ g.classList.add("reaching"); });
+    wrap.addEventListener("pointerleave", function(){ g.classList.remove("reaching"); });
+    wrap.addEventListener("focus", function(){ activate(i); g.classList.add("reaching"); });
+    wrap.addEventListener("blur", function(){ g.classList.remove("reaching"); release(); });
   });
 
   /* the category node */
@@ -487,7 +501,7 @@ function activate(i){
   stage.classList.add("focused");
   groups.forEach(function(g, k){ g.classList.toggle("on", k === i); });
   wires.forEach(function(w, k){ if (w) w.classList.toggle("on", k === i); });
-  chordEls.forEach(function(c){ c.classList.toggle("lit", +c.dataset.a === i || +c.dataset.b === i); });
+  spokeEls.forEach(function(s, k){ s.classList.toggle("lit", k === i); });
 }
 /* grace period, so crossing the gap out to a tool never dismisses it */
 function release(){
@@ -496,9 +510,9 @@ function release(){
     held = false;
     map.classList.remove("focused");
     stage.classList.remove("focused");
-    groups.forEach(function(g){ g.classList.remove("on"); });
+    groups.forEach(function(g){ g.classList.remove("on", "reaching"); });
     wires.forEach(function(w){ if (w) w.classList.remove("on"); });
-    chordEls.forEach(function(c){ c.classList.remove("lit"); });
+    spokeEls.forEach(function(s){ s.classList.remove("lit"); });
   }, 340);
 }
 map.addEventListener("pointerleave", release);

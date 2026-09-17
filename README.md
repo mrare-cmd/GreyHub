@@ -2,11 +2,12 @@
 
 The hub for every internal tool the team has built. One page, no build step, no dependencies.
 
-A frosted glass core reading `MAMF AI` sits at the centre, with the six categories wired to each other
-on a single ring that turns once every ten minutes. Data packets travel the wires. Hovering a node holds
-the ring still, lights that node's connections, and pushes its tools outward onto a second circumference;
-clicking opens a side panel with descriptions and links. A plain directory sits below the map for anyone
-who just wants the list.
+A frosted glass core reading `MAMF AI` sits at the centre. Each of the six categories is wired to the
+core by a single spoke — they do not cross-link to each other — on a ring that turns once every ten
+minutes. Data packets run the spokes in and out of the core. Hovering a node holds the ring still, lights
+its spoke, and pushes its tools outward onto a second circumference; hovering any one of those tools
+lifts the whole set, with the one under the cursor lifting furthest. Clicking opens a side panel with
+descriptions and links. A plain directory sits below the map for anyone who just wants the list.
 
 Light steel blue (`#B0C4DE`) is the only hue on the page — nothing is colour-coded by category.
 
@@ -30,8 +31,8 @@ Everything lives in the `CATEGORIES` block near the top of the `<script>` in `in
 - Leave `url:""` and the tool renders as **link pending** — useful for parking something before it ships.
 - A category with an empty `tools:[]` still gets a node; it renders hollow and reads as unmapped.
 - Categories are spaced evenly around the ring automatically — order in the array is clockwise from the top.
-- `R_CAT`, `R_SAT`, `FAN`, `SPIN` and `PACKETS` below the config control the geometry, the rotation
-  period in seconds, and how much traffic rides the wires.
+- `R_CAT`, `R_SAT`, `R_CORE_IN`, `FAN`, `SPIN` and `PACKETS` below the config control the geometry, the
+  rotation period in seconds, and how much traffic rides the spokes.
 
 ## Current contents
 
