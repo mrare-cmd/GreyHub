@@ -12,6 +12,8 @@ way to the centre) and grows; its tools swing out into a wide orbit around it; t
 and the other five categories swing round the circle to a tight 104° arc on the opposite side, shrinking
 as they go. Everything is interpolated frame by frame, so it reads as one continuous motion in both
 directions. Hovering a tool lifts the whole set, the one under the cursor furthest.
+**Hovering the middle lets go** and puts everything back on the ring — the tools never come within 180
+units of centre, so the reset zone (`R_RESET`) cannot be hit on the way to one.
 
 **Clicking a category flashes its tools** — an expanding pulse ring and a double blink — and does nothing
 else. There is no side panel. The only click-through targets are the tools themselves, which open in a
