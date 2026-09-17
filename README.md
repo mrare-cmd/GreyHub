@@ -16,7 +16,6 @@ Everything lives in the `CATEGORIES` block near the top of the `<script>` in `in
 
 ```js
 {
-  key:"prospecting",
   name:"Prospecting",
   blurb:"One line shown on the card and in the side panel.",
   tools:[
@@ -29,7 +28,7 @@ Everything lives in the `CATEGORIES` block near the top of the `<script>` in `in
 ```
 
 - Leave `url:""` and the tool renders as **link pending** — useful for parking something before it ships.
-- A category with an empty `tools:[]` still gets a planet; it just reads "no tools yet".
+- A category with an empty `tools:[]` still gets a node; it renders hollow and reads as unmapped.
 - Categories are spaced evenly around the ring automatically — order in the array is clockwise from the top.
 - `R_CAT`, `R_SAT`, `FAN`, `SPIN` and `PACKETS` below the config control the geometry, the rotation
   period in seconds, and how much traffic rides the wires.
@@ -59,7 +58,7 @@ The hub lands at `https://<owner>.github.io/mamf-ai-hub/`.
 
 ## Notes
 
-- A single self-contained `index.html`. The only external request is the IBM Plex webfont from Google Fonts.
+- A single self-contained `index.html`. The only external request is the Archivo / Instrument Sans webfonts from Google Fonts.
 - The OpEx Dashboard points at the app's own domain rather than a Cloudflare Access login URL — those
   login links carry a short-lived token and stop working within minutes.
 - Respects `prefers-reduced-motion`: the ring holds still and the packets are not created at all.
