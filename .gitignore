@@ -1,0 +1,5 @@
+# licensed font sources — the page ships a subset embedded in index.html,
+# so the full desktop binaries stay out of the public repo
+*.ttf
+*.otf
+sub-*.woff2

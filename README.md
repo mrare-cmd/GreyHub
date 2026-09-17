@@ -87,6 +87,9 @@ The hub lands at `https://mrare-cmd.github.io/GreyHub/`.
 
 ## Notes
 
+- The wordmark is set in **FS Clerkenwell** (Fontsmith). External font hosts are blocked, so the page
+  carries the face itself: Regular and Bold, subset to Latin with `pyftsubset` and inlined as woff2 data
+  URIs, about 7KB each. The licensed `.ttf`/`.otf` sources are gitignored — only the subset ships.
 - `index.html` plus the icon set. The only external request is the Archivo / Instrument Sans webfonts
   from Google Fonts.
 - `logo.jpg` is the source mark. The tab and bookmark icons are generated from it: `favicon.ico`
