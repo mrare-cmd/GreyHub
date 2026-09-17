@@ -5,7 +5,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&family=Instrument+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&family=Bitter:wght@500;600&family=Instrument+Sans:wght@400;500&display=swap">
 
 <style>
 /* ============================================================
@@ -27,6 +27,9 @@
 
   --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
   --f-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+  /* The wordmark face. FS Clerkenwell is named first so anyone with it installed
+     gets the real thing; Bitter is the stand-in until the file is embedded. */
+  --f-mark:"FS Clerkenwell","FSClerkenwell","Bitter",Georgia,serif;
 
   /* the map is sized so the whole network fits without scrolling */
   --stage:min(1040px,90vw,calc(100vh - 126px));
@@ -100,8 +103,8 @@ a{color:inherit;text-decoration:none}
    which is what makes the flip read as one word rather than two. */
 .core .mark{
   display:block;white-space:nowrap;
-  font-family:var(--f-display);font-weight:600;
-  font-size:calc(var(--stage) * .029);letter-spacing:.035em;
+  font-family:var(--f-mark);font-weight:600;
+  font-size:calc(var(--stage) * .027);letter-spacing:.005em;
   color:var(--ink);line-height:1;
 }
 .swap{
@@ -841,7 +844,7 @@ CATEGORIES.forEach(function(cat){
     core.classList.add("sweep");
     setTimeout(function(){ ai = !ai; core.classList.toggle("ai", ai); }, 440);
     setTimeout(function(){ core.classList.remove("sweep"); }, 1250);
-  }, 5200);
+  }, 3400);
 })();
 
 /* ---------- directory dropdown: close on outside click and on Escape ---------- */
