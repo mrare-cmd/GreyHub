@@ -104,6 +104,13 @@ a{color:inherit;text-decoration:none}
 }
 .stage.focused .core{opacity:.5}
 
+/* ---------- background constellation: atmosphere, never a connection ---------- */
+.sky{pointer-events:none;transition:opacity .5s ease}
+#map.focused .sky{opacity:.38}
+.sky-line{stroke:rgba(176,196,222,.062);stroke-width:.85}
+.sky-dot{fill:rgba(176,196,222,.42);animation:twinkle linear infinite alternate}
+@keyframes twinkle{from{opacity:.2}to{opacity:.85}}
+
 /* ---------- spokes: every category wired to the core, nothing else ---------- */
 .spoke{fill:none;stroke:var(--wire);stroke-width:1;transition:stroke .45s ease,stroke-width .45s ease}
 .spoke.lit{stroke:var(--wire-hot);stroke-width:1.4}
@@ -249,6 +256,9 @@ a.prow:hover .t .end{color:var(--accent)}
 @media (max-width:560px){
   .lbl.sat-lbl{display:none}
 }
+@media (prefers-reduced-motion:reduce){
+  .sky-dot{animation:none;opacity:.5}
+}
 </style>
 
 <header class="masthead wrap">
@@ -363,6 +373,58 @@ var halo = el("radialGradient", { id:"halo" });
 });
 defs.appendChild(halo);
 map.appendChild(defs);
+
+/* ---------- background constellation ----------
+   Decoration only: it sits under everything, never reacts to the pointer, and
+   drifts the opposite way at a third the speed so it reads as depth, not wiring. */
+var sky = el("g", { class:"sky" });
+map.appendChild(sky);
+(function(){
+  var sp = [], tries = 0, MINSEP = 50, LINK = 132;
+  while (sp.length < 62 && tries < 6000){
+    tries++;
+    var x = (Math.random() * 2 - 1) * 502, y = (Math.random() * 2 - 1) * 502;
+    if (x * x + y * y < 128 * 128) continue;          /* keep clear of the core */
+    var ok = true;
+    for (var i = 0; i < sp.length; i++){
+      var dx = sp[i][0] - x, dy = sp[i][1] - y;
+      if (dx * dx + dy * dy < MINSEP * MINSEP){ ok = false; break; }
+    }
+    if (ok) sp.push([x, y]);
+  }
+
+  var lines = el("g", {}), seen = {};
+  for (var i = 0; i < sp.length; i++){
+    var near = [];
+    for (var j = 0; j < sp.length; j++){
+      if (i === j) continue;
+      var dx = sp[i][0] - sp[j][0], dy = sp[i][1] - sp[j][1], d2 = dx * dx + dy * dy;
+      if (d2 < LINK * LINK) near.push([d2, j]);
+    }
+    near.sort(function(m, n){ return m[0] - n[0]; });
+    for (var k = 0; k < Math.min(2, near.length); k++){
+      var j2 = near[k][1], key = Math.min(i, j2) + ":" + Math.max(i, j2);
+      if (seen[key]) continue;
+      seen[key] = 1;
+      lines.appendChild(el("line", { class:"sky-line",
+        x1:sp[i][0].toFixed(1), y1:sp[i][1].toFixed(1),
+        x2:sp[j2][0].toFixed(1), y2:sp[j2][1].toFixed(1) }));
+    }
+  }
+  sky.appendChild(lines);
+
+  var dots = el("g", {});
+  sp.forEach(function(p){
+    var c = el("circle", { class:"sky-dot", cx:p[0].toFixed(1), cy:p[1].toFixed(1),
+      r:(1.1 + Math.random() * 1.5).toFixed(2) });
+    if (!reduce){
+      c.style.animationDuration = (4 + Math.random() * 7).toFixed(1) + "s";
+      c.style.animationDelay = (-Math.random() * 9).toFixed(1) + "s";
+    }
+    dots.appendChild(c);
+  });
+  sky.appendChild(dots);
+})();
 
 /* mesh rotates as one rigid piece; marks are translated so text stays upright */
 var mesh  = el("g", { class:"mesh" });
@@ -479,11 +541,16 @@ CATEGORIES.forEach(function(cat, i){
 });
 
 /* ---------- the slow turn ---------- */
-var spinA = 0, held = false, last = null;
+var spinA = 0, skyA = 0, held = false, last = null;
 function frame(now){
   if (last === null) last = now;
   var dt = (now - last) / 1000; last = now;
   if (!held && !reduce) spinA = (spinA + dt * 360 / SPIN) % 360;
+  /* the backdrop never freezes — it drifts the other way, a third as fast */
+  if (!reduce){
+    skyA = (skyA - dt * 360 / (SPIN * 3)) % 360;
+    sky.setAttribute("transform", "rotate(" + skyA.toFixed(3) + ")");
+  }
   mesh.setAttribute("transform", "rotate(" + spinA.toFixed(3) + ")");
   for (var i = 0; i < holders.length; i++){
     var h = holders[i], p = pol(h.r, h.a + spinA);

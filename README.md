@@ -9,6 +9,10 @@ its spoke, and pushes its tools outward onto a second circumference; hovering an
 lifts the whole set, with the one under the cursor lifting furthest. Clicking opens a side panel with
 descriptions and links. A plain directory sits below the map for anyone who just wants the list.
 
+Behind all of it, a constellation of ~60 faint points drifts the opposite way at a third the speed. It is
+decoration only: no pointer events, well below the wires in brightness, and it dims further when a node is
+active. It exists to give the field depth, not to imply connections.
+
 Light steel blue (`#B0C4DE`) is the only hue on the page — nothing is colour-coded by category.
 
 ## Editing
@@ -50,12 +54,13 @@ Everything lives in the `CATEGORIES` block near the top of the `<script>` in `in
 ## Publishing to GitHub Pages
 
 ```bash
-git remote add origin https://github.com/<owner>/mamf-ai-hub.git
 git push -u origin main
 ```
 
+The `origin` remote is already set to `https://github.com/mrare-cmd/GreyHub.git`.
+
 Then in **Settings → Pages**, set Source to `Deploy from a branch`, branch `main`, folder `/ (root)`.
-The hub lands at `https://<owner>.github.io/mamf-ai-hub/`.
+The hub lands at `https://mrare-cmd.github.io/GreyHub/`.
 
 ## Notes
 
