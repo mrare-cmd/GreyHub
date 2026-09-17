@@ -1,318 +1,244 @@
-<title>MAMF AI Orbit</title>
+<title>MAMF AI Node Network</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&family=Instrument+Sans:wght@400;500&display=swap">
 
 <style>
 /* ============================================================
-   One material, one ring, no color-coding.
-   Hierarchy comes from scale, brightness and distance.
+   Glass node network. A mesh of wires between category nodes,
+   traffic moving along them, a frosted core that blurs the
+   mesh passing behind it. One hue: light steel blue.
    ============================================================ */
 :root{
-  --bg:#08090C;
-  --line:rgba(255,255,255,.055);
-  --line-2:rgba(255,255,255,.11);
-  --line-3:rgba(255,255,255,.20);
-  --ink:#F3F4F6;
-  --ink-2:#9DA3AD;
-  --ink-3:#5E636C;
+  --bg:#06070A;
+  --accent:#B0C4DE;
+  --accent-hot:#E1ECF9;
+  --wire:rgba(176,196,222,.16);
+  --wire-hot:rgba(176,196,222,.66);
+  --glass:rgba(255,255,255,.045);
+  --glass-line:rgba(255,255,255,.11);
+  --ink:#E9EDF3;
+  --ink-2:#8D97A7;
+  --ink-3:#565E6A;
 
   --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
   --f-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
 
-  /* geometry — every planet sits on one circumference */
-  --stage:min(780px,90vw);
-  --r-planet:.300;   /* planet ring, as a fraction of the stage */
-  --r-moon:.408;     /* satellite ring */
-  --d-sun:calc(var(--stage) * .176);
-  --d-planet:calc(var(--stage) * .088);
-  --d-moon:calc(var(--d-planet) * .75);
+  --stage:min(700px,88vw);
 }
 
 *{box-sizing:border-box}
 html,body{margin:0}
 body{
-  font-family:var(--f-body);
-  font-size:15px;line-height:1.55;color:var(--ink);
+  font-family:var(--f-body);font-size:15px;line-height:1.55;color:var(--ink);
   background:
-    radial-gradient(900px 640px at 50% 38%, #12141B 0%, rgba(18,20,27,0) 68%),
+    radial-gradient(760px 600px at 50% 40%, #0E1118 0%, rgba(14,17,24,0) 72%),
+    radial-gradient(520px 420px at 84% 6%, rgba(176,196,222,.06) 0%, rgba(176,196,222,0) 70%),
     var(--bg);
   background-attachment:fixed;
   -webkit-font-smoothing:antialiased;
-  text-rendering:optimizeLegibility;
 }
 a{color:inherit;text-decoration:none}
-::selection{background:rgba(255,255,255,.16)}
-:focus-visible{outline:1px solid var(--ink);outline-offset:4px;border-radius:2px}
+::selection{background:rgba(176,196,222,.22)}
+:focus-visible{outline:1px solid var(--accent);outline-offset:3px;border-radius:3px}
 
-.wrap{max-width:1080px;margin:0 auto;padding-inline:28px}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:28px}
 
-/* ---------- masthead: a wordmark, nothing else ---------- */
+.glass{
+  background:var(--glass);
+  border:1px solid var(--glass-line);
+  border-radius:18px;
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  backdrop-filter:blur(18px) saturate(150%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 24px 60px rgba(0,0,0,.45);
+}
+
+/* ---------- masthead ---------- */
 .masthead{
-  position:relative;z-index:6;
-  display:flex;align-items:baseline;justify-content:space-between;gap:20px;
-  padding-block:30px 0;
+  position:relative;z-index:3;display:flex;align-items:baseline;
+  justify-content:space-between;gap:20px;padding-block:32px 0;
 }
 .wordmark{
-  font-family:var(--f-display);font-weight:700;font-size:13px;
-  letter-spacing:.34em;text-transform:uppercase;color:var(--ink);
+  font-family:var(--f-display);font-weight:600;font-size:12.5px;
+  letter-spacing:.38em;text-transform:uppercase;color:var(--ink);
 }
-.count{
-  font-size:12px;letter-spacing:.02em;color:var(--ink-3);
+.count{font-size:11.5px;letter-spacing:.1em;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* ---------- map + legend ---------- */
+.mapsec{
+  display:flex;align-items:center;justify-content:center;gap:clamp(18px,4vw,60px);
+  flex-wrap:wrap;padding-block:6px 0;
+}
+.stage{position:relative;width:var(--stage);height:var(--stage);flex:none}
+#map{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+.core{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:calc(var(--stage) * .225);height:calc(var(--stage) * .225);
+  border-radius:50%;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.16);
+  -webkit-backdrop-filter:blur(12px) saturate(180%);
+  backdrop-filter:blur(12px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.26),
+    inset 0 -16px 34px rgba(176,196,222,.07),
+    0 0 48px rgba(176,196,222,.10),
+    0 20px 46px rgba(0,0,0,.5);
+  display:grid;place-content:center;gap:6px;text-align:center;
+  cursor:pointer;z-index:3;
+  transition:border-color .4s ease, box-shadow .4s ease, opacity .5s ease;
+}
+.core b{
+  display:block;font-family:var(--f-display);font-weight:600;
+  font-size:calc(var(--stage) * .034);letter-spacing:.2em;color:var(--ink);line-height:1;
+}
+.core i{
+  display:block;font-style:normal;font-size:calc(var(--stage) * .0155);
+  letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);
   font-variant-numeric:tabular-nums;
 }
+.core:hover{
+  border-color:rgba(176,196,222,.45);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32), 0 0 74px rgba(176,196,222,.2), 0 20px 46px rgba(0,0,0,.5);
+}
+.stage.focused .core{opacity:.5}
 
-/* ---------- map ---------- */
-.mapsec{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center}
-.stage{
-  position:relative;width:var(--stage);height:var(--stage);flex:none;
-  margin-block:calc(var(--stage) * -.02);
-}
-.ring{
-  position:absolute;left:50%;top:50%;border-radius:50%;
-  border:1px solid var(--line);transform:translate(-50%,-50%);pointer-events:none;
-}
-.ring.planet-ring{
-  width:calc(var(--stage) * var(--r-planet) * 2);
-  height:calc(var(--stage) * var(--r-planet) * 2);
-}
-.ring.moon-ring{
-  width:calc(var(--stage) * var(--r-moon) * 2);
-  height:calc(var(--stage) * var(--r-moon) * 2);
-  border-color:transparent;transition:border-color .5s ease;
-}
-.stage.focused .ring.moon-ring{border-color:var(--line)}
+/* ---------- mesh ---------- */
+.chord{fill:none;stroke:var(--wire);stroke-width:1;transition:stroke .45s ease,stroke-width .45s ease}
+.chord.lit{stroke:var(--wire-hot);stroke-width:1.3}
+#map.focused .chord:not(.lit){stroke:rgba(176,196,222,.055)}
 
-/* the single sphere material, shared by sun, planets and satellites */
-.sphere{
-  display:block;width:100%;height:100%;border-radius:50%;
-  background:
-    radial-gradient(circle at 34% 27%,
-      #FFFFFF 0%, #DCE0E6 14%, #AFB5BF 36%, #71767F 60%, #3A3D44 82%, #202329 100%);
-  box-shadow:
-    inset -6px -9px 20px rgba(0,0,0,.55),
-    inset 3px 4px 14px rgba(255,255,255,.10),
-    0 14px 34px rgba(0,0,0,.55);
-  transition:box-shadow .45s cubic-bezier(.2,.7,.25,1);
-}
+.packet{fill:var(--accent-hot)}
+#map.focused .packet{opacity:.3}
 
-/* sun */
-.sun{
-  position:absolute;left:50%;top:50%;z-index:4;
-  width:var(--d-sun);height:var(--d-sun);
-  transform:translate(-50%,-50%);
-  border:0;padding:0;background:none;cursor:pointer;
-  transition:opacity .45s ease,transform .5s cubic-bezier(.2,.7,.25,1);
-}
-.sun .sphere{
-  background:
-    radial-gradient(circle at 35% 26%,
-      #FFFFFF 0%, #F4F2EE 18%, #D6D3CC 42%, #9B978E 68%, #56534D 88%, #2C2A27 100%);
-  box-shadow:
-    inset -8px -12px 26px rgba(0,0,0,.5),
-    inset 4px 5px 16px rgba(255,255,255,.18),
-    0 0 70px rgba(236,232,222,.10),
-    0 18px 46px rgba(0,0,0,.6);
-}
-.sun-cap{
-  position:absolute;inset:0;display:grid;place-content:center;text-align:center;
-}
-.sun-cap b{
-  display:block;font-family:var(--f-display);font-weight:700;
-  font-size:calc(var(--d-sun) * .155);letter-spacing:.20em;
-  color:#191A1D;line-height:1;
-}
-.stage.focused .sun{opacity:.4;transform:translate(-50%,-50%) scale(.97)}
-.sun:hover{transform:translate(-50%,-50%) scale(1.045)}
-.stage.focused .sun:hover{opacity:1}
+.wire{fill:none;stroke:var(--wire-hot);stroke-width:1.1;
+  stroke-dasharray:1;stroke-dashoffset:1;
+  transition:stroke-dashoffset .7s cubic-bezier(.3,.7,.3,1) .04s}
+.wire.on{stroke-dashoffset:0}
 
 /* ---------- nodes ---------- */
-.node{
-  position:absolute;left:50%;top:50%;width:0;height:0;
-  transform:translate(var(--x),var(--y));
-  pointer-events:none;
-  transition:opacity .45s ease;
-}
-.stage.focused .node{opacity:.24}
-.stage.focused .node.is-active{opacity:1;z-index:5}
+.cat{transition:opacity .45s ease}
+#map.focused .cat{opacity:.2}
+#map.focused .cat.on{opacity:1}
 
-/* generous invisible hit area so the pointer never falls through the gap */
-.reach{
-  position:absolute;left:0;top:0;border-radius:50%;
-  width:calc(var(--stage) * .42);height:calc(var(--stage) * .42);
-  transform:translate(-50%,-50%);pointer-events:none;
-}
-.node.is-active .reach{pointer-events:auto}
+.glow{transition:opacity .45s ease}
+.bead{fill:var(--accent-hot);transition:r .45s cubic-bezier(.2,.7,.25,1)}
+.bead.hollow{fill:rgba(176,196,222,.14);stroke:rgba(176,196,222,.42);stroke-width:1.2}
+.cat.on .cat-hold .bead{r:16}
+.ringlet{fill:none;stroke:rgba(176,196,222,.5);stroke-width:1;stroke-dasharray:2 6;
+  opacity:0;transition:opacity .45s ease}
+.cat.on .ringlet{opacity:1}
 
-.drift{
-  position:absolute;left:0;top:0;width:0;height:0;
-  animation:drift var(--fd) ease-in-out infinite alternate;
-  animation-delay:var(--fdl);
-  transition:transform .6s cubic-bezier(.2,.7,.25,1);
-}
-@keyframes drift{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}
-.node.is-active .drift{animation-play-state:paused}
+.sat{opacity:0;pointer-events:none;transition:opacity .4s ease}
+.cat.on .sat{opacity:1;pointer-events:auto}
+.satwrap{cursor:pointer}
+.satwrap:hover .bead{r:12}
 
-.planet{
-  position:absolute;left:0;top:0;transform:translate(-50%,-50%);
-  width:var(--d-planet);height:var(--d-planet);
-  border:0;padding:0;background:none;cursor:pointer;pointer-events:auto;
-  transition:transform .5s cubic-bezier(.2,.7,.25,1);
+/* labels */
+.lbl text{text-anchor:middle;dominant-baseline:central}
+.lbl rect{fill:rgba(255,255,255,.06);stroke:rgba(255,255,255,.11);stroke-width:1}
+.lbl.flat rect{fill:rgba(6,7,10,.6);stroke:none}
+.lbl.cat-lbl text{
+  font-family:var(--f-display);font-weight:600;font-size:17px;
+  letter-spacing:.18em;fill:var(--ink-2);transition:fill .4s ease;
 }
-.planet-name{
-  position:absolute;left:50%;top:calc(100% + 15px);transform:translateX(-50%);
-  font-family:var(--f-display);font-weight:600;
-  font-size:clamp(11px,calc(var(--stage) * .0175),13.5px);
-  letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;
-  color:var(--ink-2);transition:color .4s ease,letter-spacing .5s ease;
+.cat.on .lbl.cat-lbl text{fill:var(--ink)}
+.lbl.cat-num text{
+  font-family:var(--f-display);font-weight:500;font-size:12px;letter-spacing:.22em;
+  fill:var(--ink-3);font-variant-numeric:tabular-nums;transition:fill .4s ease;
 }
-.planet-meta{
-  position:absolute;left:50%;top:calc(100% + 34px);transform:translateX(-50%);
-  font-size:11px;letter-spacing:.06em;color:var(--ink-3);white-space:nowrap;
-  opacity:0;transition:opacity .4s ease;
-}
-.node.is-active .planet{transform:translate(-50%,-50%) scale(1.32)}
-.node.is-active .sphere{
-  box-shadow:
-    inset -6px -9px 20px rgba(0,0,0,.5),
-    inset 3px 4px 14px rgba(255,255,255,.16),
-    0 0 0 1px rgba(255,255,255,.14),
-    0 0 44px rgba(255,255,255,.10),
-    0 18px 40px rgba(0,0,0,.6);
-}
-.node.is-active .planet-name{color:var(--ink);letter-spacing:.19em}
-.node.is-active .planet-meta{opacity:1}
+.cat.on .lbl.cat-num text{fill:var(--accent)}
+.lbl.sat-lbl text{font-family:var(--f-body);font-weight:400;font-size:15px;fill:var(--ink)}
+.satwrap.locked .lbl.sat-lbl text{fill:var(--ink-2)}
 
-/* ---------- satellites: pushed outward onto the moon ring ---------- */
-.moon{
-  position:absolute;left:0;top:0;
-  transform:translate(-50%,-50%) scale(.2);
-  opacity:0;pointer-events:none;
-  transition:transform .55s cubic-bezier(.18,.72,.24,1),opacity .35s ease;
-}
-.node.is-active .moon{
-  transform:translate(calc(var(--mx) - 50%),calc(var(--my) - 50%)) scale(1);
-  opacity:1;pointer-events:auto;
-}
-.moon-body{
-  position:relative;display:block;
-  width:var(--d-moon);height:var(--d-moon);
-  transition:transform .35s cubic-bezier(.2,.7,.25,1);
-}
-.moon:hover .moon-body{transform:scale(1.14)}
-.moon-name{
-  position:absolute;left:50%;top:calc(100% + 12px);transform:translateX(-50%);
-  font-size:11.5px;font-weight:500;letter-spacing:.015em;white-space:nowrap;
-  color:var(--ink-2);transition:color .3s ease;
-}
-/* label sits on the outward side, so it never lands on the parent planet */
-.moon.up .moon-name{top:auto;bottom:calc(100% + 12px)}
-.moon:hover .moon-name{color:var(--ink)}
-.moon-name .lock{color:var(--ink-3);font-size:10px;letter-spacing:.1em;margin-left:5px}
-.moon.pending .moon-body{opacity:.4}
-.moon.pending .moon-name{color:var(--ink-3)}
+.hit{fill:transparent;pointer-events:all;cursor:pointer}
 
-.hint{
-  position:relative;z-index:2;
-  font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
-  padding-block:6px 54px;
-}
+/* ---------- legend ---------- */
+.legend{padding:22px 24px;min-width:206px}
+.legend h3{font-family:var(--f-display);font-weight:600;font-size:10px;letter-spacing:.26em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 16px}
+.legend ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:13px}
+.legend li{display:flex;align-items:center;gap:11px;font-size:13.5px;color:var(--ink-2)}
+.legend b{margin-left:auto;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.ldot{width:9px;height:9px;border-radius:50%;flex:none}
+.ldot.live{background:var(--accent-hot);box-shadow:0 0 10px rgba(176,196,222,.85)}
+.ldot.gated{background:rgba(176,196,222,.3);box-shadow:inset 0 0 0 1px rgba(176,196,222,.75)}
+.ldot.void{background:none;box-shadow:inset 0 0 0 1px rgba(176,196,222,.26)}
+
+.hint{width:100%;text-align:center;margin:0;padding-block:0 56px;
+  font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-3)}
 
 /* ---------- directory ---------- */
-.dir{position:relative;z-index:2;padding-block:0 72px}
-.dir-head{
-  display:flex;align-items:baseline;justify-content:space-between;
-  padding-bottom:14px;border-bottom:1px solid var(--line-2);
-}
-.dir-head h2{
-  font-family:var(--f-display);font-weight:600;font-size:11.5px;
-  letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2);margin:0;
-}
-.dir-head span{font-size:11.5px;color:var(--ink-3);letter-spacing:.06em}
+.dir{position:relative;z-index:2;padding:30px 34px 14px;margin-bottom:64px}
+.dir-head{display:flex;align-items:baseline;justify-content:space-between;
+  padding-bottom:16px;border-bottom:1px solid var(--glass-line)}
+.dir-head h2{font-family:var(--f-display);font-weight:600;font-size:10.5px;
+  letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2);margin:0}
+.dir-head span{font-size:11.5px;color:var(--ink-3);letter-spacing:.08em;font-variant-numeric:tabular-nums}
 
-.row{
-  display:grid;grid-template-columns:168px minmax(0,1fr) auto;
-  align-items:baseline;gap:20px;
-  padding:17px 10px 17px 0;margin-inline:-10px;padding-left:10px;
-  border-bottom:1px solid var(--line);
-  transition:background .2s ease;
-}
-a.row:hover{background:rgba(255,255,255,.035)}
-.row .cat{
-  font-family:var(--f-display);font-weight:500;font-size:10.5px;
-  letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
-  transition:color .2s ease;
-}
-a.row:hover .cat{color:var(--ink-2)}
-.row .name{font-size:15.5px;font-weight:500;color:var(--ink);letter-spacing:-.005em}
+.row{display:grid;grid-template-columns:168px minmax(0,1fr) auto;align-items:baseline;gap:22px;
+  padding:18px 12px;margin-inline:-12px;border-bottom:1px solid rgba(255,255,255,.055);
+  border-radius:10px;transition:background .2s ease}
+a.row:hover{background:rgba(176,196,222,.06)}
+.row:last-child{border-bottom:0}
+.row .cat-c{font-family:var(--f-display);font-weight:500;font-size:10px;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);transition:color .2s ease}
+a.row:hover .cat-c{color:var(--accent)}
+.row .name{font-size:15.5px;font-weight:500;color:var(--ink)}
 .row .note{display:block;font-size:13px;color:var(--ink-3);margin-top:3px;line-height:1.5;font-weight:400}
-.row .end{
-  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
-  white-space:nowrap;transition:color .2s ease,transform .2s ease;
-}
-a.row:hover .end{color:var(--ink);transform:translateX(3px)}
-.row.empty .name{color:var(--ink-3);font-weight:400}
+.row .end{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+  white-space:nowrap;transition:color .2s ease,transform .2s ease}
+a.row:hover .end{color:var(--accent);transform:translateX(3px)}
+.row.void .name{color:var(--ink-3);font-weight:400}
 
-footer{
-  position:relative;z-index:2;padding-block:0 56px;
-  font-size:11.5px;letter-spacing:.06em;color:var(--ink-3);
-}
+footer{padding-block:0 60px;font-size:11px;letter-spacing:.1em;color:var(--ink-3)}
 
 /* ---------- panel ---------- */
-.scrim{
-  position:fixed;inset:0;z-index:20;background:rgba(4,5,7,.7);
-  backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s ease;
-}
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(3,4,6,.7);backdrop-filter:blur(5px);
+  opacity:0;pointer-events:none;transition:opacity .3s ease}
 .scrim.open{opacity:1;pointer-events:auto}
-.panel{
-  position:fixed;z-index:21;top:0;right:0;height:100%;width:min(430px,92vw);
-  background:#0D0F13;border-left:1px solid var(--line-2);
+.panel{position:fixed;z-index:21;top:0;right:0;height:100%;width:min(430px,92vw);
+  background:rgba(14,16,21,.84);border-left:1px solid var(--glass-line);
+  -webkit-backdrop-filter:blur(24px) saturate(150%);backdrop-filter:blur(24px) saturate(150%);
   transform:translateX(102%);transition:transform .42s cubic-bezier(.2,.75,.25,1);
   display:flex;flex-direction:column;
-  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
-}
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .panel.open{transform:translateX(0)}
 .panel-in{padding:38px 32px 40px;overflow-y:auto}
-.panel h2{
-  font-family:var(--f-display);font-weight:600;font-size:22px;
-  letter-spacing:.03em;margin:0 0 10px;
-}
+.panel h2{font-family:var(--f-display);font-weight:600;font-size:21px;letter-spacing:.05em;margin:0 0 10px}
 .panel .lede{margin:0;color:var(--ink-2);font-size:14px;line-height:1.6}
-.panel h3{
-  font-family:var(--f-display);font-weight:600;font-size:10.5px;letter-spacing:.22em;
-  text-transform:uppercase;color:var(--ink-3);margin:34px 0 4px;
-  padding-bottom:12px;border-bottom:1px solid var(--line-2);
-}
-.panel .prow{
-  display:block;padding:16px 10px 16px 0;border-bottom:1px solid var(--line);
-  margin-inline:-10px;padding-left:10px;transition:background .2s ease;
-}
-a.prow:hover{background:rgba(255,255,255,.04)}
-.panel .prow .t{display:flex;align-items:baseline;gap:10px;font-size:15px;font-weight:500}
-.panel .prow .t .end{margin-left:auto;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
-.panel .prow .n{font-size:13px;color:var(--ink-3);margin-top:4px;line-height:1.5}
-.closebtn{
-  position:absolute;top:calc(28px + env(safe-area-inset-top,0px));right:26px;
-  background:none;border:0;color:var(--ink-3);cursor:pointer;
-  font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-family:var(--f-body);
-}
-.closebtn:hover{color:var(--ink)}
+.panel h3{font-family:var(--f-display);font-weight:600;font-size:10px;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--ink-3);margin:32px 0 4px;
+  padding-bottom:12px;border-bottom:1px solid var(--glass-line)}
+.prow{display:block;padding:16px 12px;margin-inline:-12px;border-radius:10px;
+  border-bottom:1px solid rgba(255,255,255,.055);transition:background .2s ease}
+a.prow:hover{background:rgba(176,196,222,.06)}
+.prow .t{display:flex;align-items:baseline;gap:10px;font-size:15px;font-weight:500}
+.prow .t .end{margin-left:auto;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+a.prow:hover .t .end{color:var(--accent)}
+.prow .n{font-size:13px;color:var(--ink-3);margin-top:4px;line-height:1.5;display:block}
+.closebtn{position:absolute;top:calc(28px + env(safe-area-inset-top,0px));right:26px;
+  background:none;border:0;color:var(--ink-3);cursor:pointer;font-family:var(--f-body);
+  font-size:10.5px;letter-spacing:.2em;text-transform:uppercase}
+.closebtn:hover{color:var(--accent)}
 
+@media (max-width:1040px){
+  .mapsec{flex-direction:column}
+  .legend{width:min(420px,100%)}
+}
 @media (max-width:820px){
-  :root{--stage:min(600px,92vw)}
-  .wrap{padding-inline:20px}
+  .wrap{padding-inline:18px}
+  .dir{padding:24px 20px 10px}
   .row{grid-template-columns:1fr auto;gap:8px 16px}
-  .row .cat{grid-column:1/-1;margin-bottom:2px}
+  .row .cat-c{grid-column:1/-1;margin-bottom:2px}
   .panel{top:auto;bottom:0;right:0;width:100%;height:min(78vh,640px);
-    border-left:0;border-top:1px solid var(--line-2);border-radius:16px 16px 0 0;
+    border-left:0;border-top:1px solid var(--glass-line);border-radius:16px 16px 0 0;
     transform:translateY(102%)}
   .panel.open{transform:translateY(0)}
 }
-@media (max-width:620px){
-  .moon-name{display:none}
-}
-@media (prefers-reduced-motion:reduce){
-  .drift{animation:none}
+@media (max-width:560px){
+  .lbl.sat-lbl{display:none}
 }
 </style>
 
@@ -321,24 +247,27 @@ a.prow:hover{background:rgba(255,255,255,.04)}
   <div class="count" id="count"></div>
 </header>
 
-<section class="mapsec" aria-label="Tool map">
+<section class="mapsec wrap" aria-label="Tool network">
   <div class="stage" id="stage">
-    <div class="ring planet-ring"></div>
-    <div class="ring moon-ring"></div>
-    <button class="sun" id="sun" aria-label="MAMF AI — all categories">
-      <span class="sphere"></span>
-      <span class="sun-cap"><b>MAMF AI</b></span>
-    </button>
+    <svg id="map" viewBox="-520 -520 1040 1040" role="img" aria-label="Network map of tool categories"></svg>
+    <div class="core" id="core" role="button" tabindex="0"><b>MAMF AI</b><i id="coreSub"></i></div>
   </div>
-  <p class="hint">Hover a category</p>
+  <aside class="legend glass">
+    <h3>Node status</h3>
+    <ul>
+      <li><span class="ldot live"></span>Live<b id="nLive"></b></li>
+      <li><span class="ldot gated"></span>Sign-in<b id="nGated"></b></li>
+      <li><span class="ldot void"></span>Unmapped<b id="nVoid"></b></li>
+    </ul>
+  </aside>
+  <p class="hint">Hover a node</p>
 </section>
 
-<main class="dir wrap">
-  <div class="dir-head">
-    <h2>Directory</h2>
-    <span id="dirCount"></span>
+<main class="wrap">
+  <div class="dir glass">
+    <div class="dir-head"><h2>Directory</h2><span id="dirCount"></span></div>
+    <div id="rows"></div>
   </div>
-  <div id="rows"></div>
 </main>
 
 <footer class="wrap" id="foot"></footer>
@@ -352,211 +281,305 @@ a.prow:hover{background:rgba(255,255,255,.04)}
 <script>
 /* ==========================================================
    CONFIG — the only block to edit.
-     url:""      renders the tool as "link pending"
-     gated:true  adds a "sign-in" marker
-   Order below = clockwise from the top of the ring.
+     url:""      renders as "link pending"
+     gated:true  marks it as needing a sign-in
+   Order = clockwise from the top of the ring.
    ========================================================== */
 var CATEGORIES = [
-  {
-    name:"Prospecting",
+  { name:"Prospecting",
     blurb:"Finding and ranking the next deal before anyone else does.",
     tools:[
-      { name:"PBS8 Database",
-        url:"https://mrare-cmd.github.io/HAP-Database/",
+      { name:"PBS8 Database", url:"https://mrare-cmd.github.io/HAP-Database/",
         note:"Project-based Section 8 contracts, rents and renewal options." },
-      { name:"TOPA Dashboard",
-        url:"https://mrare-cmd.github.io/mrare/",
+      { name:"TOPA Dashboard", url:"https://mrare-cmd.github.io/mrare/",
         note:"DC TOPA and DOPA notices and offers of sale." },
-      { name:"Priority Dashboard",
-        url:"https://mrare-cmd.github.io/greysteel-hampton-roads/",
+      { name:"Priority Dashboard", url:"https://mrare-cmd.github.io/greysteel-hampton-roads/",
         note:"Ranked prospecting targets and outreach status." }
-    ]
-  },
-  {
-    name:"Underwriting",
+    ]},
+  { name:"Underwriting",
     blurb:"Models, comps and assumptions that feed a deal's numbers.",
     tools:[
-      { name:"OpEx Dashboard",
-        url:"https://gs-expense-comps.pages.dev/",
-        gated:true,
+      { name:"OpEx Dashboard", url:"https://gs-expense-comps.pages.dev/", gated:true,
         note:"Operating expense comparables by market and asset type." }
-    ]
-  },
-  {
-    name:"Client Tools",
+    ]},
+  { name:"Client Tools",
     blurb:"Things we put directly in a client's hands.",
     tools:[
-      { name:"Inspection Assistant",
-        url:"https://mrare-cmd.github.io/walkthrough/app.html",
+      { name:"Inspection Assistant", url:"https://mrare-cmd.github.io/walkthrough/app.html",
         note:"Guided property walkthrough capture and write-up." }
-    ]
-  },
-  { name:"Comparables", blurb:"Sales, rent and expense comp sets.", tools:[] },
-  { name:"Production",  blurb:"Turning underwriting into client-ready deliverables.", tools:[] },
+    ]},
+  { name:"Comparables",   blurb:"Sales, rent and expense comp sets.", tools:[] },
+  { name:"Production",    blurb:"Turning underwriting into client-ready deliverables.", tools:[] },
   { name:"Miscellaneous", blurb:"Everything that does not belong to one desk yet.", tools:[] }
 ];
 
-var R_PLANET = 0.300;   /* must match --r-planet */
-var R_MOON   = 0.408;   /* must match --r-moon   */
-var FAN      = 26;      /* degrees between satellites */
+var R_CAT   = 312;   /* the one circumference every category sits on */
+var R_SAT   = 424;   /* where a category's tools are pushed out to   */
+var FAN     = 26;    /* degrees between tools                        */
+var SPIN    = 620;   /* seconds for one revolution                   */
+var PACKETS = 16;    /* how much traffic rides the wires             */
 
-var stage  = document.getElementById("stage");
-var panel  = document.getElementById("panel");
-var scrim  = document.getElementById("scrim");
-var nodes  = [];
-var closeT = null;
+var NS = "http://www.w3.org/2000/svg";
+var XL = "http://www.w3.org/1999/xlink";
+var map = document.getElementById("map");
+var stage = document.getElementById("stage");
+var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-var total = 0, live = 0;
-CATEGORIES.forEach(function(c){
-  total += c.tools.length;
-  live  += c.tools.filter(function(t){ return !!t.url; }).length;
-});
-document.getElementById("count").textContent = live + " tools · " + CATEGORIES.length + " categories";
-document.getElementById("dirCount").textContent = live + " of " + total + " linked";
-document.getElementById("foot").textContent =
-  "Edit the CATEGORIES block in index.html to add a tool.";
-
-function sphere(){ var s = document.createElement("span"); s.className = "sphere"; return s; }
-function frac(k){ return "calc(var(--stage) * " + k.toFixed(5) + ")"; }
-
-/* ---- build the ring ---- */
-CATEGORIES.forEach(function(cat, i){
-  var theta = (-90 + i * (360 / CATEGORIES.length)) * Math.PI / 180;
-  var px = R_PLANET * Math.cos(theta);
-  var py = R_PLANET * Math.sin(theta);
-
-  var node = document.createElement("div");
-  node.className = "node";
-  node.style.setProperty("--x", frac(px));
-  node.style.setProperty("--y", frac(py));
-
-  var reach = document.createElement("div");
-  reach.className = "reach";
-  node.appendChild(reach);
-
-  /* satellites sit on the outer circumference, fanned around their parent's angle */
-  var n = cat.tools.length;
-  cat.tools.forEach(function(tool, j){
-    var phi = theta + ((j - (n - 1) / 2) * FAN) * Math.PI / 180;
-    var el = document.createElement(tool.url ? "a" : "span");
-    el.className = "moon" + (tool.url ? "" : " pending") +
-                   (Math.sin(phi) < 0 ? " up" : "");
-    if (tool.url) { el.href = tool.url; el.target = "_blank"; el.rel = "noopener"; }
-    el.style.setProperty("--mx", frac(R_MOON * Math.cos(phi) - px));
-    el.style.setProperty("--my", frac(R_MOON * Math.sin(phi) - py));
-    el.style.transitionDelay = (j * 60) + "ms, " + (j * 60) + "ms";
-
-    var body = document.createElement("span");
-    body.className = "moon-body";
-    body.appendChild(sphere());
-
-    var nm = document.createElement("span");
-    nm.className = "moon-name";
-    nm.appendChild(document.createTextNode(tool.name));
-    if (tool.gated) {
-      var lk = document.createElement("span");
-      lk.className = "lock"; lk.textContent = "SIGN-IN";
-      nm.appendChild(lk);
-    }
-    body.appendChild(nm);
-    el.appendChild(body);
-    node.appendChild(el);
-  });
-
-  /* the planet itself drifts gently; it settles the moment it is active */
-  var drift = document.createElement("div");
-  drift.className = "drift";
-  drift.style.setProperty("--dx", (Math.sin(i * 2.1) * 5).toFixed(2) + "px");
-  drift.style.setProperty("--dy", (Math.cos(i * 1.7) * 6).toFixed(2) + "px");
-  drift.style.setProperty("--fd", (7.5 + (i % 4) * 1.6).toFixed(1) + "s");
-  drift.style.setProperty("--fdl", (-i * 1.3).toFixed(1) + "s");
-
-  var planet = document.createElement("button");
-  planet.className = "planet";
-  planet.setAttribute("aria-label", cat.name + " — " + n + (n === 1 ? " tool" : " tools"));
-  planet.appendChild(sphere());
-  var nm2 = document.createElement("span");
-  nm2.className = "planet-name"; nm2.textContent = cat.name;
-  var meta = document.createElement("span");
-  meta.className = "planet-meta";
-  meta.textContent = n ? n + (n === 1 ? " tool" : " tools") : "no tools yet";
-  planet.appendChild(nm2); planet.appendChild(meta);
-
-  drift.appendChild(planet);
-  node.appendChild(drift);
-  stage.appendChild(node);
-  nodes.push(node);
-
-  node.addEventListener("pointerenter", function(){ activate(node); });
-  node.addEventListener("pointerleave", release);
-  planet.addEventListener("focus", function(){ activate(node); });
-  node.addEventListener("focusout", function(e){
-    if (!node.contains(e.relatedTarget)) release();
-  });
-  planet.addEventListener("click", function(){ openPanel(cat); });
-});
-
-function activate(node){
-  clearTimeout(closeT);
-  stage.classList.add("focused");
-  nodes.forEach(function(n){ n.classList.toggle("is-active", n === node); });
+function el(n, a){
+  var e = document.createElementNS(NS, n);
+  for (var k in a) if (a.hasOwnProperty(k)) e.setAttribute(k, a[k]);
+  return e;
 }
-/* a grace period, so crossing the gap out to a satellite never dismisses it */
+function pol(r, deg){ var t = deg * Math.PI / 180; return [r * Math.cos(t), r * Math.sin(t)]; }
+function fmt(p){ return p[0].toFixed(2) + " " + p[1].toFixed(2); }
+function label(cls, y, text){
+  var g = el("g", { class:"lbl " + cls, transform:"translate(0," + y + ")" });
+  g.appendChild(el("rect", { x:"-1", y:"-1", width:"2", height:"2", rx:"9" }));
+  var t = el("text", {}); t.textContent = text;
+  g.appendChild(t);
+  return g;
+}
+function bead(g, r, hollow){
+  g.appendChild(el("circle", { class:"glow", cx:0, cy:0, r:(r * 3.4).toFixed(1),
+    fill:"url(#halo)", opacity:hollow ? .4 : 1 }));
+  g.appendChild(el("circle", { class:"bead" + (hollow ? " hollow" : ""), cx:0, cy:0, r:r }));
+}
+
+/* ---------- defs ---------- */
+var defs = el("defs", {});
+var halo = el("radialGradient", { id:"halo" });
+[[0,.44],[.32,.17],[.66,.04],[1,0]].forEach(function(s){
+  halo.appendChild(el("stop", { offset:(s[0]*100)+"%", "stop-color":"#B0C4DE", "stop-opacity":s[1] }));
+});
+defs.appendChild(halo);
+map.appendChild(defs);
+
+/* mesh rotates as one rigid piece; marks are translated so text stays upright */
+var mesh  = el("g", { class:"mesh" });
+var marks = el("g", { class:"marks" });
+map.appendChild(mesh);
+map.appendChild(marks);
+
+/* ---------- wires between every pair of categories ---------- */
+var STEP = 360 / CATEGORIES.length;
+var pts = CATEGORIES.map(function(c, i){ return pol(R_CAT, -90 + i * STEP); });
+var chordEls = [];
+for (var a = 0; a < pts.length; a++){
+  for (var b = a + 1; b < pts.length; b++){
+    var p = el("path", { class:"chord", id:"ch" + a + "_" + b, d:"M " + fmt(pts[a]) + " L " + fmt(pts[b]) });
+    p.dataset.a = a; p.dataset.b = b;
+    mesh.appendChild(p);
+    chordEls.push(p);
+  }
+}
+
+/* ---------- traffic on the wires ---------- */
+if (!reduce){
+  for (var k = 0; k < PACKETS; k++){
+    var src = chordEls[Math.floor(Math.random() * chordEls.length)];
+    var dur = (3.4 + Math.random() * 4.4).toFixed(2);
+    var begin = (-Math.random() * dur).toFixed(2) + "s";
+    var dot = el("circle", { class:"packet", r:(1.8 + Math.random() * 1.5).toFixed(1), opacity:"0" });
+    var mo = el("animateMotion", { dur:dur + "s", begin:begin, repeatCount:"indefinite", calcMode:"linear" });
+    if (Math.random() < .5){ mo.setAttribute("keyPoints", "1;0"); mo.setAttribute("keyTimes", "0;1"); }
+    var mp = el("mpath", {});
+    mp.setAttributeNS(XL, "xlink:href", "#" + src.id);
+    mp.setAttribute("href", "#" + src.id);
+    mo.appendChild(mp);
+    dot.appendChild(mo);
+    dot.appendChild(el("animate", { attributeName:"opacity", values:"0;.92;.92;0",
+      keyTimes:"0;.14;.86;1", dur:dur + "s", begin:begin, repeatCount:"indefinite" }));
+    mesh.appendChild(dot);
+  }
+}
+
+/* ---------- nodes ---------- */
+var holders = [];     /* {g, r, a} — repositioned each frame, never rotated */
+var groups  = [];
+var wires   = [];
+var closeT  = null;
+
+CATEGORIES.forEach(function(cat, i){
+  var theta = -90 + i * STEP;
+  var n = cat.tools.length;
+  var g = el("g", { class:"cat" });
+
+  /* wire from this node out to each of its tools (lives in the rotating mesh) */
+  if (n > 0){
+    var d = "";
+    for (var j = 0; j < n; j++){
+      var aj = theta - FAN * (n - 1) / 2 + j * FAN;
+      d += " M " + fmt(pts[i]) + " L " + fmt(pol(R_SAT - 16, aj));
+    }
+    var w = el("path", { class:"wire", d:d.trim(), pathLength:"1" });
+    mesh.appendChild(w);
+    wires[i] = w;
+  }
+
+  /* the tools */
+  cat.tools.forEach(function(tool, j){
+    var aj = theta - FAN * (n - 1) / 2 + j * FAN;
+    var wrap = el(tool.url ? "a" : "g", { class:"satwrap" + (tool.url ? "" : " locked") });
+    if (tool.url){
+      wrap.setAttributeNS(XL, "xlink:href", tool.url);
+      wrap.setAttribute("href", tool.url);
+      wrap.setAttribute("target", "_blank");
+      wrap.setAttribute("rel", "noopener");
+      wrap.setAttribute("aria-label", tool.name);
+    }
+    var hold = el("g", {});
+    var sat = el("g", { class:"sat" });
+    sat.style.transitionDelay = (120 + j * 70) + "ms";
+    bead(sat, 8.5, !tool.url);
+    sat.appendChild(label("sat-lbl", 30, tool.name + (tool.gated ? "   ○" : "")));
+    sat.appendChild(el("circle", { class:"hit", cx:0, cy:0, r:42 }));
+    hold.appendChild(sat);
+    wrap.appendChild(hold);
+    g.appendChild(wrap);
+    holders.push({ g:hold, r:R_SAT, a:aj });
+  });
+
+  /* the category node */
+  var chold = el("g", { class:"cat-hold" });
+  chold.appendChild(el("circle", { class:"ringlet", cx:0, cy:0, r:27 }));
+  bead(chold, n ? 12 : 9, !n);
+  chold.appendChild(label("cat-lbl flat", 40, cat.name.toUpperCase()));
+  chold.appendChild(label("cat-num flat", 62, n ? String(n).padStart(2, "0") : "—"));
+  var hit = el("circle", { class:"hit", cx:0, cy:0, r:54, tabindex:"0", role:"button" });
+  hit.setAttribute("aria-label", cat.name + ", " + n + (n === 1 ? " tool" : " tools"));
+  chold.appendChild(hit);
+  g.appendChild(chold);
+  holders.push({ g:chold, r:R_CAT, a:theta });
+
+  marks.appendChild(g);
+  groups.push(g);
+
+  g.addEventListener("pointerenter", function(){ activate(i); });
+  g.addEventListener("pointerleave", release);
+  hit.addEventListener("focus", function(){ activate(i); });
+  hit.addEventListener("blur", release);
+  hit.addEventListener("click", function(){ openPanel(cat); });
+  hit.addEventListener("keydown", function(e){
+    if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openPanel(cat); }
+  });
+});
+
+/* ---------- the slow turn ---------- */
+var spinA = 0, held = false, last = null;
+function frame(now){
+  if (last === null) last = now;
+  var dt = (now - last) / 1000; last = now;
+  if (!held && !reduce) spinA = (spinA + dt * 360 / SPIN) % 360;
+  mesh.setAttribute("transform", "rotate(" + spinA.toFixed(3) + ")");
+  for (var i = 0; i < holders.length; i++){
+    var h = holders[i], p = pol(h.r, h.a + spinA);
+    h.g.setAttribute("transform", "translate(" + p[0].toFixed(2) + "," + p[1].toFixed(2) + ")");
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- hover: hold the mesh still, light one node's wires ---------- */
+function activate(i){
+  clearTimeout(closeT);
+  held = true;
+  map.classList.add("focused");
+  stage.classList.add("focused");
+  groups.forEach(function(g, k){ g.classList.toggle("on", k === i); });
+  wires.forEach(function(w, k){ if (w) w.classList.toggle("on", k === i); });
+  chordEls.forEach(function(c){ c.classList.toggle("lit", +c.dataset.a === i || +c.dataset.b === i); });
+}
+/* grace period, so crossing the gap out to a tool never dismisses it */
 function release(){
   clearTimeout(closeT);
   closeT = setTimeout(function(){
+    held = false;
+    map.classList.remove("focused");
     stage.classList.remove("focused");
-    nodes.forEach(function(n){ n.classList.remove("is-active"); });
-  }, 320);
+    groups.forEach(function(g){ g.classList.remove("on"); });
+    wires.forEach(function(w){ if (w) w.classList.remove("on"); });
+    chordEls.forEach(function(c){ c.classList.remove("lit"); });
+  }, 340);
 }
-stage.addEventListener("pointerleave", release);
+map.addEventListener("pointerleave", release);
 
-/* ---- directory ---- */
+/* ---------- size each label plate to its text ---------- */
+function fitLabels(){
+  var ls = map.querySelectorAll(".lbl");
+  for (var i = 0; i < ls.length; i++){
+    var t = ls[i].querySelector("text"), r = ls[i].querySelector("rect"), bb;
+    try { bb = t.getBBox(); } catch (e) { continue; }
+    if (!bb.width) continue;
+    var flat = ls[i].classList.contains("flat");
+    var px = flat ? 9 : 14, py = flat ? 4 : 8;
+    r.setAttribute("x", (bb.x - px).toFixed(2));
+    r.setAttribute("y", (bb.y - py).toFixed(2));
+    r.setAttribute("width", (bb.width + px * 2).toFixed(2));
+    r.setAttribute("height", (bb.height + py * 2).toFixed(2));
+    r.setAttribute("rx", flat ? 5 : ((bb.height + py * 2) / 2).toFixed(2));
+  }
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitLabels);
+else window.addEventListener("load", fitLabels);
+setTimeout(fitLabels, 1400);
+
+/* ---------- counts ---------- */
+var total = 0, live = 0, gated = 0, voids = 0;
+CATEGORIES.forEach(function(c){
+  total += c.tools.length;
+  if (!c.tools.length) voids++;
+  c.tools.forEach(function(t){ if (t.url) { if (t.gated) gated++; else live++; } });
+});
+document.getElementById("count").textContent = (live + gated) + " tools / " + CATEGORIES.length + " categories";
+document.getElementById("coreSub").textContent = (live + gated) + " tools";
+document.getElementById("dirCount").textContent = (live + gated) + " of " + total + " linked";
+document.getElementById("nLive").textContent = String(live).padStart(2, "0");
+document.getElementById("nGated").textContent = String(gated).padStart(2, "0");
+document.getElementById("nVoid").textContent = String(voids).padStart(2, "0");
+document.getElementById("foot").textContent = "Edit the CATEGORIES block in index.html to add a tool.";
+
+/* ---------- directory ---------- */
 var rows = document.getElementById("rows");
 CATEGORIES.forEach(function(cat){
-  if (!cat.tools.length) {
+  if (!cat.tools.length){
     var s = document.createElement("div");
-    s.className = "row empty";
-    s.innerHTML = '<span class="cat"></span>';
-    s.querySelector(".cat").textContent = cat.name;
-    var nm = document.createElement("span"); nm.className = "name"; nm.textContent = "Awaiting links";
-    var en = document.createElement("span"); en.className = "end"; en.textContent = "—";
-    s.appendChild(nm); s.appendChild(en);
+    s.className = "row void";
+    var c0 = document.createElement("span"); c0.className = "cat-c"; c0.textContent = cat.name;
+    var n0 = document.createElement("span"); n0.className = "name"; n0.textContent = "Awaiting links";
+    var e0 = document.createElement("span"); e0.className = "end"; e0.textContent = "—";
+    s.appendChild(c0); s.appendChild(n0); s.appendChild(e0);
     rows.appendChild(s);
     return;
   }
   cat.tools.forEach(function(tool, j){
     var row = document.createElement(tool.url ? "a" : "div");
-    row.className = "row" + (tool.url ? "" : " empty");
-    if (tool.url) { row.href = tool.url; row.target = "_blank"; row.rel = "noopener"; }
-
-    var c = document.createElement("span"); c.className = "cat";
+    row.className = "row" + (tool.url ? "" : " void");
+    if (tool.url){ row.href = tool.url; row.target = "_blank"; row.rel = "noopener"; }
+    var c = document.createElement("span"); c.className = "cat-c";
     c.textContent = j === 0 ? cat.name : "";
-
     var nm = document.createElement("span"); nm.className = "name";
     nm.appendChild(document.createTextNode(tool.name));
-    if (tool.note) {
+    if (tool.note){
       var note = document.createElement("span");
       note.className = "note"; note.textContent = tool.note;
       nm.appendChild(note);
     }
-
     var end = document.createElement("span"); end.className = "end";
-    end.textContent = tool.url ? (tool.gated ? "Sign-in  ↗" : "Open  ↗") : "Link pending";
-
+    end.textContent = tool.url ? (tool.gated ? "Sign-in ↗" : "Open ↗") : "Link pending";
     row.appendChild(c); row.appendChild(nm); row.appendChild(end);
     rows.appendChild(row);
   });
 });
 
-/* ---- panel ---- */
+/* ---------- panel ---------- */
+var panel = document.getElementById("panel");
+var scrim = document.getElementById("scrim");
 var panelIn = document.getElementById("panelIn");
 var lastFocus = null;
 
 function openPanel(cat){
   lastFocus = document.activeElement;
   panelIn.innerHTML = "";
-
   var h = document.createElement("h2"); h.id = "panelName"; h.textContent = cat.name;
   var p = document.createElement("p"); p.className = "lede"; p.textContent = cat.blurb;
   panelIn.appendChild(h); panelIn.appendChild(p);
@@ -567,45 +590,37 @@ function openPanel(cat){
     : "Nothing here yet";
   panelIn.appendChild(h3);
 
-  if (!cat.tools.length) {
+  if (!cat.tools.length){
     var e = document.createElement("p");
     e.className = "lede"; e.style.marginTop = "18px";
     e.textContent = "Send the links for this category and they will appear here.";
     panelIn.appendChild(e);
   }
-
   cat.tools.forEach(function(tool){
     var row = document.createElement(tool.url ? "a" : "div");
     row.className = "prow";
-    if (tool.url) { row.href = tool.url; row.target = "_blank"; row.rel = "noopener"; }
-
+    if (tool.url){ row.href = tool.url; row.target = "_blank"; row.rel = "noopener"; }
     var t = document.createElement("span"); t.className = "t";
     t.appendChild(document.createTextNode(tool.name));
     var end = document.createElement("span"); end.className = "end";
-    end.textContent = tool.url ? (tool.gated ? "Sign-in  ↗" : "Open  ↗") : "Link pending";
+    end.textContent = tool.url ? (tool.gated ? "Sign-in ↗" : "Open ↗") : "Link pending";
     t.appendChild(end);
     row.appendChild(t);
-
-    if (tool.note) {
-      var n = document.createElement("span"); n.className = "n"; n.textContent = tool.note;
-      row.appendChild(n);
+    if (tool.note){
+      var nn = document.createElement("span"); nn.className = "n"; nn.textContent = tool.note;
+      row.appendChild(nn);
     }
     panelIn.appendChild(row);
   });
 
   panel.hidden = false;
-  requestAnimationFrame(function(){
-    panel.classList.add("open");
-    scrim.classList.add("open");
-  });
+  requestAnimationFrame(function(){ panel.classList.add("open"); scrim.classList.add("open"); });
   document.getElementById("closebtn").focus();
 }
-
 function closePanel(){
-  panel.classList.remove("open");
-  scrim.classList.remove("open");
+  panel.classList.remove("open"); scrim.classList.remove("open");
   setTimeout(function(){ panel.hidden = true; }, 420);
-  if (lastFocus) lastFocus.focus();
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
 }
 document.getElementById("closebtn").addEventListener("click", closePanel);
 scrim.addEventListener("click", closePanel);
@@ -613,13 +628,15 @@ document.addEventListener("keydown", function(e){
   if (e.key === "Escape" && !panel.hidden) closePanel();
 });
 
-document.getElementById("sun").addEventListener("click", function(){
+function openCore(){
   openPanel({
-    name: "MAMF AI",
-    blurb: "Every tool the team has built, in one place. Each category on the ring holds its own projects — hover to bring them out, or use the directory below.",
-    tools: CATEGORIES.map(function(c){
-      return { name: c.name, url: "", note: c.blurb };
-    })
+    name:"MAMF AI",
+    blurb:"Every tool the team has built, on one network. Each node holds its own projects — hover one to draw them out, or use the directory below.",
+    tools:CATEGORIES.map(function(c){ return { name:c.name, url:"", note:c.blurb }; })
   });
+}
+document.getElementById("core").addEventListener("click", openCore);
+document.getElementById("core").addEventListener("keydown", function(e){
+  if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openCore(); }
 });
 </script>

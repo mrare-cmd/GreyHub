@@ -1,10 +1,14 @@
-# MAMF AI — Orbit
+# MAMF AI — Node Network
 
 The hub for every internal tool the team has built. One page, no build step, no dependencies.
 
-`MAMF AI` sits at the center. Six categories orbit it. Hovering a category enlarges it and fans out the
-tools that belong to it; clicking opens a side panel with descriptions and links. A plain directory of
-everything sits below the map for anyone who just wants the list.
+A frosted glass core reading `MAMF AI` sits at the centre, with the six categories wired to each other
+on a single ring that turns once every ten minutes. Data packets travel the wires. Hovering a node holds
+the ring still, lights that node's connections, and pushes its tools outward onto a second circumference;
+clicking opens a side panel with descriptions and links. A plain directory sits below the map for anyone
+who just wants the list.
+
+Light steel blue (`#B0C4DE`) is the only hue on the page — nothing is colour-coded by category.
 
 ## Editing
 
@@ -14,13 +18,11 @@ Everything lives in the `CATEGORIES` block near the top of the `<script>` in `in
 {
   key:"prospecting",
   name:"Prospecting",
-  color:"var(--p-prospecting)",     // token defined in :root
   blurb:"One line shown on the card and in the side panel.",
-  orbit:2, phase:0.68,              // which ring, and where on it (0–1)
   tools:[
     { name:"PBS8 Database",
       url:"https://mrare-cmd.github.io/HAP-Database/",
-      gated:false,                  // true adds a "sign-in" badge
+      gated:false,                  // true marks it as needing a sign-in
       note:"One line shown in the side panel." }
   ]
 }
@@ -28,9 +30,9 @@ Everything lives in the `CATEGORIES` block near the top of the `<script>` in `in
 
 - Leave `url:""` and the tool renders as **link pending** — useful for parking something before it ships.
 - A category with an empty `tools:[]` still gets a planet; it just reads "no tools yet".
-- `ORBITS` below the config sets each ring's radius (as a fraction of the map) and orbital period.
-- To keep two planets from crowding each other, put them on the same `orbit` with `phase` values
-  half a turn apart (e.g. `0.18` and `0.68`).
+- Categories are spaced evenly around the ring automatically — order in the array is clockwise from the top.
+- `R_CAT`, `R_SAT`, `FAN`, `SPIN` and `PACKETS` below the config control the geometry, the rotation
+  period in seconds, and how much traffic rides the wires.
 
 ## Current contents
 
@@ -60,5 +62,7 @@ The hub lands at `https://<owner>.github.io/mamf-ai-hub/`.
 - A single self-contained `index.html`. The only external request is the IBM Plex webfont from Google Fonts.
 - The OpEx Dashboard points at the app's own domain rather than a Cloudflare Access login URL — those
   login links carry a short-lived token and stop working within minutes.
-- Respects `prefers-reduced-motion`: orbits hold still, everything stays usable.
-- Keyboard accessible — planets are buttons, so tabbing through the map reveals each category's tools.
+- Respects `prefers-reduced-motion`: the ring holds still and the packets are not created at all.
+- Keyboard accessible — each node is focusable, so tabbing through the map reveals each category's tools.
+- The rotation is driven by one `requestAnimationFrame` loop that moves a single mesh transform plus
+  eleven node holders, so labels never rotate and hover never has to chase a moving target.
