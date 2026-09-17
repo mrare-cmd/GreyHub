@@ -73,10 +73,12 @@ The hub lands at `https://mrare-cmd.github.io/GreyHub/`.
 
 ## Notes
 
-- `index.html` plus `favicon.svg`. The only external request is the Archivo / Instrument Sans webfonts
+- `index.html` plus the icon set. The only external request is the Archivo / Instrument Sans webfonts
   from Google Fonts.
-- `favicon.svg` is the GreyHub mark redrawn as vector — a node ring around a glowing G on a blue-violet
-  gradient — so it stays sharp at every tab size and costs ~4KB. Replace that one file to change it.
+- `logo.jpg` is the source mark. The tab and bookmark icons are generated from it: `favicon.ico`
+  (16/32/48), `icon-192.png`, `icon-512.png` and `apple-touch-icon.png`. They are cropped to the mark's
+  bounding box plus 10%, so it fills the tile instead of floating in the original's padding. Replace
+  `logo.jpg` and regenerate to change them.
 - The OpEx Dashboard points at the app's own domain rather than a Cloudflare Access login URL — those
   login links carry a short-lived token and stop working within minutes.
 - Respects `prefers-reduced-motion`: the ring holds still and the packets are not created at all.
