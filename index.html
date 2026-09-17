@@ -1,682 +1,625 @@
 <title>MAMF AI Orbit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap">
 
 <style>
-/* ---------- tokens: one committed visual world (deep-sky instrument panel) ---------- */
+/* ============================================================
+   One material, one ring, no color-coding.
+   Hierarchy comes from scale, brightness and distance.
+   ============================================================ */
 :root{
-  --void:#070B15;
-  --panel:#121B2E;
-  --panel-2:#18233A;
-  --rule:rgba(157,178,214,.16);
-  --rule-soft:rgba(157,178,214,.09);
-  --ink:#E9EEF8;
-  --ink-2:#A7B4CE;          /* blue-biased neutral, chosen not inherited */
-  --ink-3:#6E7C99;
-  --sun-core:#FFF3DC;
-  --sun:#F3B65C;
-  --sun-deep:#C9762A;
-  --p-underwriting:#6FA8FF;
-  --p-client:#3FC7A6;
-  --p-misc:#AE8CF2;
-  --p-comps:#F2825C;
-  --p-prospecting:#49CFE3;
-  --p-production:#E56C9D;
-  --pending:#7B88A6;
+  --bg:#08090C;
+  --line:rgba(255,255,255,.055);
+  --line-2:rgba(255,255,255,.11);
+  --line-3:rgba(255,255,255,.20);
+  --ink:#F3F4F6;
+  --ink-2:#9DA3AD;
+  --ink-3:#5E636C;
 
-  --f-display:"IBM Plex Sans Condensed","Helvetica Neue",Arial,sans-serif;
-  --f-body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
 
-  --stage:min(700px,86vw);
-  --planet:calc(var(--stage) * .082);
-  --sunsize:calc(var(--stage) * .17);
+  /* geometry — every planet sits on one circumference */
+  --stage:min(780px,90vw);
+  --r-planet:.300;   /* planet ring, as a fraction of the stage */
+  --r-moon:.408;     /* satellite ring */
+  --d-sun:calc(var(--stage) * .176);
+  --d-planet:calc(var(--stage) * .088);
+  --d-moon:calc(var(--d-planet) * .75);
 }
 
 *{box-sizing:border-box}
 html,body{margin:0}
 body{
   font-family:var(--f-body);
-  font-size:15px;
-  line-height:1.55;
-  color:var(--ink);
+  font-size:15px;line-height:1.55;color:var(--ink);
   background:
-    radial-gradient(1100px 620px at 50% 34%, #16223C 0%, rgba(22,34,60,0) 62%),
-    radial-gradient(800px 500px at 88% 8%, rgba(73,207,227,.10) 0%, rgba(73,207,227,0) 60%),
-    radial-gradient(760px 520px at 6% 88%, rgba(174,140,242,.10) 0%, rgba(174,140,242,0) 60%),
-    var(--void);
+    radial-gradient(900px 640px at 50% 38%, #12141B 0%, rgba(18,20,27,0) 68%),
+    var(--bg);
   background-attachment:fixed;
   -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
 }
-a{color:inherit}
-::selection{background:rgba(243,182,92,.3)}
-:focus-visible{outline:2px solid var(--sun);outline-offset:3px;border-radius:4px}
+a{color:inherit;text-decoration:none}
+::selection{background:rgba(255,255,255,.16)}
+:focus-visible{outline:1px solid var(--ink);outline-offset:4px;border-radius:2px}
 
-.wrap{max-width:1180px;margin:0 auto;padding-inline:20px}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:28px}
 
-/* ---------- header ---------- */
-header.top{position:relative;z-index:6;padding-block:26px 8px}
-.brandline{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.mark{
-  font-family:var(--f-display);font-weight:700;font-size:19px;
-  letter-spacing:.20em;text-transform:uppercase;color:var(--ink);
+/* ---------- masthead: a wordmark, nothing else ---------- */
+.masthead{
+  position:relative;z-index:6;
+  display:flex;align-items:baseline;justify-content:space-between;gap:20px;
+  padding-block:30px 0;
 }
-.mark span{color:var(--sun)}
-.eyebrow{
-  font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--ink-3);
+.wordmark{
+  font-family:var(--f-display);font-weight:700;font-size:13px;
+  letter-spacing:.34em;text-transform:uppercase;color:var(--ink);
 }
-.lede{margin:14px 0 0;max-width:62ch;color:var(--ink-2);font-size:15.5px}
-
-/* ---------- star canvas ---------- */
-#stars{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.count{
+  font-size:12px;letter-spacing:.02em;color:var(--ink-3);
+  font-variant-numeric:tabular-nums;
+}
 
 /* ---------- map ---------- */
-.mapsec{position:relative;z-index:2;display:flex;justify-content:center;padding-block:10px 4px}
-.stage{position:relative;width:var(--stage);height:var(--stage);margin:min(90px,9vw) 0;flex:none}
+.mapsec{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center}
+.stage{
+  position:relative;width:var(--stage);height:var(--stage);flex:none;
+  margin-block:calc(var(--stage) * -.02);
+}
 .ring{
   position:absolute;left:50%;top:50%;border-radius:50%;
-  border:1px solid var(--rule-soft);transform:translate(-50%,-50%);pointer-events:none;
+  border:1px solid var(--line);transform:translate(-50%,-50%);pointer-events:none;
+}
+.ring.planet-ring{
+  width:calc(var(--stage) * var(--r-planet) * 2);
+  height:calc(var(--stage) * var(--r-planet) * 2);
+}
+.ring.moon-ring{
+  width:calc(var(--stage) * var(--r-moon) * 2);
+  height:calc(var(--stage) * var(--r-moon) * 2);
+  border-color:transparent;transition:border-color .5s ease;
+}
+.stage.focused .ring.moon-ring{border-color:var(--line)}
+
+/* the single sphere material, shared by sun, planets and satellites */
+.sphere{
+  display:block;width:100%;height:100%;border-radius:50%;
+  background:
+    radial-gradient(circle at 34% 27%,
+      #FFFFFF 0%, #DCE0E6 14%, #AFB5BF 36%, #71767F 60%, #3A3D44 82%, #202329 100%);
+  box-shadow:
+    inset -6px -9px 20px rgba(0,0,0,.55),
+    inset 3px 4px 14px rgba(255,255,255,.10),
+    0 14px 34px rgba(0,0,0,.55);
+  transition:box-shadow .45s cubic-bezier(.2,.7,.25,1);
 }
 
 /* sun */
 .sun{
   position:absolute;left:50%;top:50%;z-index:4;
-  width:var(--sunsize);height:var(--sunsize);
+  width:var(--d-sun);height:var(--d-sun);
   transform:translate(-50%,-50%);
-  border:0;padding:0;cursor:pointer;background:none;
+  border:0;padding:0;background:none;cursor:pointer;
+  transition:opacity .45s ease,transform .5s cubic-bezier(.2,.7,.25,1);
 }
-.sun-body{
-  width:100%;height:100%;border-radius:50%;
-  background:radial-gradient(circle at 36% 30%, var(--sun-core) 0%, var(--sun) 46%, var(--sun-deep) 100%);
-  box-shadow:0 0 0 1px rgba(255,220,160,.5), 0 0 34px rgba(243,182,92,.34), 0 0 90px rgba(243,182,92,.20);
-  display:grid;place-content:center;
-  transition:transform .32s cubic-bezier(.2,.7,.3,1), box-shadow .32s ease;
+.sun .sphere{
+  background:
+    radial-gradient(circle at 35% 26%,
+      #FFFFFF 0%, #F4F2EE 18%, #D6D3CC 42%, #9B978E 68%, #56534D 88%, #2C2A27 100%);
+  box-shadow:
+    inset -8px -12px 26px rgba(0,0,0,.5),
+    inset 4px 5px 16px rgba(255,255,255,.18),
+    0 0 70px rgba(236,232,222,.10),
+    0 18px 46px rgba(0,0,0,.6);
 }
-.sun-label{
-  font-family:var(--f-display);font-weight:700;
-  font-size:calc(var(--sunsize) * .195);
-  letter-spacing:.13em;text-transform:uppercase;
-  color:#2A1B08;line-height:1.05;text-align:center;
+.sun-cap{
+  position:absolute;inset:0;display:grid;place-content:center;text-align:center;
 }
-.sun-sub{
-  display:block;font-family:var(--f-mono);font-weight:400;
-  font-size:calc(var(--sunsize) * .085);letter-spacing:.18em;
-  color:rgba(42,27,8,.62);margin-top:.35em;
+.sun-cap b{
+  display:block;font-family:var(--f-display);font-weight:700;
+  font-size:calc(var(--d-sun) * .155);letter-spacing:.20em;
+  color:#191A1D;line-height:1;
 }
-.sun:hover .sun-body,.sun:focus-visible .sun-body{
-  transform:scale(1.13);
-  box-shadow:0 0 0 1px rgba(255,232,190,.7), 0 0 52px rgba(243,182,92,.5), 0 0 130px rgba(243,182,92,.3);
-}
+.stage.focused .sun{opacity:.4;transform:translate(-50%,-50%) scale(.97)}
+.sun:hover{transform:translate(-50%,-50%) scale(1.045)}
+.stage.focused .sun:hover{opacity:1}
 
-/* orbit mechanics: spinner rotates, counter un-rotates so labels stay upright */
-.node{position:absolute;inset:0;pointer-events:none;transition:opacity .3s ease}
-.spinner{position:absolute;inset:0;animation:orbit var(--dur) linear infinite;transform:rotate(var(--a0))}
-.pin{position:absolute;left:50%;top:50%;width:0;height:0;transform:translateX(var(--r))}
-.counter{position:relative;width:0;height:0;animation:counter var(--dur) linear infinite;transform:rotate(calc(-1 * var(--a0)))}
-@keyframes orbit{from{transform:rotate(var(--a0))}to{transform:rotate(calc(var(--a0) + 360deg))}}
-@keyframes counter{from{transform:rotate(calc(-1 * var(--a0)))}to{transform:rotate(calc(-1 * var(--a0) - 360deg))}}
-.stage.frozen .spinner,.stage.frozen .counter{animation-play-state:paused}
+/* ---------- nodes ---------- */
+.node{
+  position:absolute;left:50%;top:50%;width:0;height:0;
+  transform:translate(var(--x),var(--y));
+  pointer-events:none;
+  transition:opacity .45s ease;
+}
+.stage.focused .node{opacity:.24}
+.stage.focused .node.is-active{opacity:1;z-index:5}
 
-/* planet */
+/* generous invisible hit area so the pointer never falls through the gap */
+.reach{
+  position:absolute;left:0;top:0;border-radius:50%;
+  width:calc(var(--stage) * .42);height:calc(var(--stage) * .42);
+  transform:translate(-50%,-50%);pointer-events:none;
+}
+.node.is-active .reach{pointer-events:auto}
+
+.drift{
+  position:absolute;left:0;top:0;width:0;height:0;
+  animation:drift var(--fd) ease-in-out infinite alternate;
+  animation-delay:var(--fdl);
+  transition:transform .6s cubic-bezier(.2,.7,.25,1);
+}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(var(--dx),var(--dy))}}
+.node.is-active .drift{animation-play-state:paused}
+
 .planet{
   position:absolute;left:0;top:0;transform:translate(-50%,-50%);
-  width:var(--planet);height:var(--planet);
+  width:var(--d-planet);height:var(--d-planet);
   border:0;padding:0;background:none;cursor:pointer;pointer-events:auto;
-  transition:transform .3s cubic-bezier(.2,.7,.3,1);
-}
-.planet-body{
-  display:block;width:100%;height:100%;border-radius:50%;
-  background:radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--c) 30%, #FFFFFF) 0%, var(--c) 52%, color-mix(in srgb, var(--c) 55%, #0A0F1C) 100%);
-  box-shadow:0 0 0 1px color-mix(in srgb, var(--c) 55%, transparent), 0 0 22px color-mix(in srgb, var(--c) 32%, transparent);
-  transition:box-shadow .3s ease;
+  transition:transform .5s cubic-bezier(.2,.7,.25,1);
 }
 .planet-name{
-  position:absolute;left:50%;top:calc(100% + 11px);transform:translateX(-50%);
+  position:absolute;left:50%;top:calc(100% + 15px);transform:translateX(-50%);
   font-family:var(--f-display);font-weight:600;
-  font-size:clamp(11px,calc(var(--stage) * .0195),14px);
-  letter-spacing:.11em;text-transform:uppercase;
-  white-space:nowrap;color:var(--ink-2);transition:color .25s ease;
+  font-size:clamp(11px,calc(var(--stage) * .0175),13.5px);
+  letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;
+  color:var(--ink-2);transition:color .4s ease,letter-spacing .5s ease;
 }
-.planet-count{
-  position:absolute;left:50%;top:calc(100% + 28px);transform:translateX(-50%);
-  font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;
-  color:var(--ink-3);white-space:nowrap;opacity:0;transition:opacity .25s ease;
+.planet-meta{
+  position:absolute;left:50%;top:calc(100% + 34px);transform:translateX(-50%);
+  font-size:11px;letter-spacing:.06em;color:var(--ink-3);white-space:nowrap;
+  opacity:0;transition:opacity .4s ease;
 }
-.node.is-active{z-index:5}
-.node.is-active .planet{transform:translate(-50%,-50%) scale(1.5)}
-.node.is-active .planet-body{box-shadow:0 0 0 1px color-mix(in srgb, var(--c) 80%, transparent), 0 0 40px color-mix(in srgb, var(--c) 55%, transparent)}
-.node.is-active .planet-name{color:var(--ink)}
-.node.is-active .planet-count{opacity:1}
-.stage.frozen .node:not(.is-active){opacity:.3}
+.node.is-active .planet{transform:translate(-50%,-50%) scale(1.32)}
+.node.is-active .sphere{
+  box-shadow:
+    inset -6px -9px 20px rgba(0,0,0,.5),
+    inset 3px 4px 14px rgba(255,255,255,.16),
+    0 0 0 1px rgba(255,255,255,.14),
+    0 0 44px rgba(255,255,255,.10),
+    0 18px 40px rgba(0,0,0,.6);
+}
+.node.is-active .planet-name{color:var(--ink);letter-spacing:.19em}
+.node.is-active .planet-meta{opacity:1}
 
-/* moons */
-.moons{position:absolute;left:0;top:0;width:0;height:0;--dir:1}
-.moons.flip{--dir:-1}
+/* ---------- satellites: pushed outward onto the moon ring ---------- */
 .moon{
   position:absolute;left:0;top:0;
-  transform:translate(calc(var(--mx) * var(--dir)), var(--my));
+  transform:translate(-50%,-50%) scale(.2);
   opacity:0;pointer-events:none;
-  transition:opacity .28s ease, transform .34s cubic-bezier(.2,.7,.3,1);
+  transition:transform .55s cubic-bezier(.18,.72,.24,1),opacity .35s ease;
 }
-.node.is-active .moon{opacity:1;pointer-events:auto}
-.node:not(.is-active) .moon{transform:translate(0,0)}
-.moon-dot{
-  position:absolute;left:0;top:0;transform:translate(-50%,-50%);
-  width:calc(var(--planet) * .34);height:calc(var(--planet) * .34);
-  border-radius:50%;background:color-mix(in srgb, var(--c) 72%, #FFFFFF);
-  box-shadow:0 0 0 1px rgba(255,255,255,.28), 0 0 14px color-mix(in srgb, var(--c) 45%, transparent);
+.node.is-active .moon{
+  transform:translate(calc(var(--mx) - 50%),calc(var(--my) - 50%)) scale(1);
+  opacity:1;pointer-events:auto;
 }
-.moon-link{
-  position:absolute;top:50%;transform:translateY(-50%);
-  left:calc(var(--planet) * .34);
-  display:inline-flex;align-items:center;gap:7px;
-  white-space:nowrap;text-decoration:none;
-  background:rgba(12,19,34,.92);
-  border:1px solid var(--rule);border-radius:999px;padding:5px 11px;
-  font-size:12.5px;font-weight:500;color:var(--ink);
-  backdrop-filter:blur(6px);
-  transition:border-color .2s ease,background .2s ease,transform .2s ease;
+.moon-body{
+  position:relative;display:block;
+  width:var(--d-moon);height:var(--d-moon);
+  transition:transform .35s cubic-bezier(.2,.7,.25,1);
 }
-.moons.flip .moon-link{left:auto;right:calc(var(--planet) * .34)}
-.moon-link:hover{border-color:color-mix(in srgb, var(--c) 70%, transparent);background:var(--panel-2);transform:translateY(-50%) scale(1.04)}
-.moon-link .tag{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--pending)}
-.moon-link.pending{border-style:dashed;color:var(--ink-2)}
+.moon:hover .moon-body{transform:scale(1.14)}
+.moon-name{
+  position:absolute;left:50%;top:calc(100% + 12px);transform:translateX(-50%);
+  font-size:11.5px;font-weight:500;letter-spacing:.015em;white-space:nowrap;
+  color:var(--ink-2);transition:color .3s ease;
+}
+/* label sits on the outward side, so it never lands on the parent planet */
+.moon.up .moon-name{top:auto;bottom:calc(100% + 12px)}
+.moon:hover .moon-name{color:var(--ink)}
+.moon-name .lock{color:var(--ink-3);font-size:10px;letter-spacing:.1em;margin-left:5px}
+.moon.pending .moon-body{opacity:.4}
+.moon.pending .moon-name{color:var(--ink-3)}
 
-/* legend */
-.legend{
-  display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center;
-  font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--ink-3);padding-block:4px 30px;position:relative;z-index:2;
+.hint{
+  position:relative;z-index:2;
+  font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+  padding-block:6px 54px;
 }
-.legend b{font-weight:500;color:var(--ink-2)}
 
 /* ---------- directory ---------- */
-.dir{position:relative;z-index:2;padding-block:16px 60px}
-.dir h2{
-  font-family:var(--f-display);font-weight:700;font-size:13px;
-  letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);
-  margin:0 0 18px;padding-bottom:12px;border-bottom:1px solid var(--rule-soft);
+.dir{position:relative;z-index:2;padding-block:0 72px}
+.dir-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding-bottom:14px;border-bottom:1px solid var(--line-2);
 }
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px}
-.cat{
-  background:linear-gradient(180deg, rgba(24,35,58,.72), rgba(18,27,46,.72));
-  border:1px solid var(--rule-soft);border-radius:14px;
-  padding:18px 18px 14px;display:flex;flex-direction:column;gap:12px;
-  transition:border-color .25s ease, transform .25s ease;
+.dir-head h2{
+  font-family:var(--f-display);font-weight:600;font-size:11.5px;
+  letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2);margin:0;
 }
-.cat:hover{border-color:color-mix(in srgb, var(--c) 45%, transparent);transform:translateY(-2px)}
-.cat-head{display:flex;align-items:center;gap:10px}
-.cat-dot{width:11px;height:11px;border-radius:50%;background:var(--c);box-shadow:0 0 12px color-mix(in srgb, var(--c) 60%, transparent);flex:none}
-.cat-name{font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.1em;text-transform:uppercase;margin:0}
-.cat-n{margin-left:auto;font-family:var(--f-mono);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.cat-blurb{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.5}
-.links{list-style:none;margin:0;padding:10px 0 0;display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--rule-soft)}
-.links .row{
-  display:flex;align-items:center;gap:10px;
-  text-decoration:none;padding:8px;margin-inline:-8px;border-radius:8px;
-  font-size:14px;transition:background .18s ease;
-}
-.links a.row:hover{background:rgba(157,178,214,.08)}
-.links .row .arrow{margin-left:auto;color:var(--ink-3);font-family:var(--f-mono);font-size:12px;transition:transform .18s ease,color .18s ease}
-.links a.row:hover .arrow{transform:translateX(3px);color:var(--c)}
-.links .row.pending{color:var(--ink-3)}
-.note{margin:0 0 8px;padding-left:8px;font-size:12.5px;color:var(--ink-3);line-height:1.45}
-.chip{
-  margin-left:auto;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
-  border:1px dashed var(--rule);border-radius:999px;padding:2px 7px;color:var(--pending);
-}
-.gate{
-  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
-  border:1px solid var(--rule);border-radius:999px;padding:2px 7px;color:var(--ink-3);
-}
-.empty{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.06em;color:var(--ink-3);padding:10px 0 2px;border-top:1px solid var(--rule-soft)}
+.dir-head span{font-size:11.5px;color:var(--ink-3);letter-spacing:.06em}
 
-/* ---------- drawer ---------- */
-.scrim{
-  position:fixed;inset:0;z-index:20;background:rgba(5,8,16,.62);
-  backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .28s ease;
+.row{
+  display:grid;grid-template-columns:168px minmax(0,1fr) auto;
+  align-items:baseline;gap:20px;
+  padding:17px 10px 17px 0;margin-inline:-10px;padding-left:10px;
+  border-bottom:1px solid var(--line);
+  transition:background .2s ease;
 }
-.scrim.open{opacity:1;pointer-events:auto}
-.drawer{
-  position:fixed;z-index:21;top:0;right:0;height:100%;width:min(420px,92vw);
-  background:linear-gradient(180deg,var(--panel-2),var(--panel));
-  border-left:1px solid var(--rule);
-  transform:translateX(102%);transition:transform .34s cubic-bezier(.22,.75,.28,1);
-  display:flex;flex-direction:column;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
+a.row:hover{background:rgba(255,255,255,.035)}
+.row .cat{
+  font-family:var(--f-display);font-weight:500;font-size:10.5px;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
+  transition:color .2s ease;
 }
-.drawer.open{transform:translateX(0)}
-.drawer-in{padding:26px 24px 30px;overflow-y:auto}
-.drawer .cat-name{font-size:19px}
-.drawer h3{
-  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--ink-3);margin:22px 0 8px;
+a.row:hover .cat{color:var(--ink-2)}
+.row .name{font-size:15.5px;font-weight:500;color:var(--ink);letter-spacing:-.005em}
+.row .note{display:block;font-size:13px;color:var(--ink-3);margin-top:3px;line-height:1.5;font-weight:400}
+.row .end{
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+  white-space:nowrap;transition:color .2s ease,transform .2s ease;
 }
-.closebtn{
-  position:absolute;top:calc(18px + env(safe-area-inset-top,0px));right:18px;
-  background:none;border:1px solid var(--rule);border-radius:50%;
-  width:32px;height:32px;color:var(--ink-2);cursor:pointer;font-size:16px;line-height:1;
-}
-.closebtn:hover{color:var(--ink);border-color:var(--ink-3)}
+a.row:hover .end{color:var(--ink);transform:translateX(3px)}
+.row.empty .name{color:var(--ink-3);font-weight:400}
 
 footer{
-  position:relative;z-index:2;border-top:1px solid var(--rule-soft);
-  padding-block:22px 40px;color:var(--ink-3);
-  font-family:var(--f-mono);font-size:11px;letter-spacing:.09em;
-  display:flex;gap:10px 24px;flex-wrap:wrap;
+  position:relative;z-index:2;padding-block:0 56px;
+  font-size:11.5px;letter-spacing:.06em;color:var(--ink-3);
 }
 
-@media (max-width:760px){
-  :root{--stage:min(560px,88vw)}
-  .stage{margin:min(70px,11vw) 0}
-  .drawer{top:auto;bottom:0;right:0;width:100%;height:min(76vh,620px);border-left:0;border-top:1px solid var(--rule);border-radius:18px 18px 0 0;transform:translateY(102%)}
-  .drawer.open{transform:translateY(0)}
-  .moon-link{font-size:11.5px;padding:4px 9px}
+/* ---------- panel ---------- */
+.scrim{
+  position:fixed;inset:0;z-index:20;background:rgba(4,5,7,.7);
+  backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s ease;
 }
-@media (max-width:430px){
-  .moon-link .tag{display:none}
+.scrim.open{opacity:1;pointer-events:auto}
+.panel{
+  position:fixed;z-index:21;top:0;right:0;height:100%;width:min(430px,92vw);
+  background:#0D0F13;border-left:1px solid var(--line-2);
+  transform:translateX(102%);transition:transform .42s cubic-bezier(.2,.75,.25,1);
+  display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.panel.open{transform:translateX(0)}
+.panel-in{padding:38px 32px 40px;overflow-y:auto}
+.panel h2{
+  font-family:var(--f-display);font-weight:600;font-size:22px;
+  letter-spacing:.03em;margin:0 0 10px;
+}
+.panel .lede{margin:0;color:var(--ink-2);font-size:14px;line-height:1.6}
+.panel h3{
+  font-family:var(--f-display);font-weight:600;font-size:10.5px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ink-3);margin:34px 0 4px;
+  padding-bottom:12px;border-bottom:1px solid var(--line-2);
+}
+.panel .prow{
+  display:block;padding:16px 10px 16px 0;border-bottom:1px solid var(--line);
+  margin-inline:-10px;padding-left:10px;transition:background .2s ease;
+}
+a.prow:hover{background:rgba(255,255,255,.04)}
+.panel .prow .t{display:flex;align-items:baseline;gap:10px;font-size:15px;font-weight:500}
+.panel .prow .t .end{margin-left:auto;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.panel .prow .n{font-size:13px;color:var(--ink-3);margin-top:4px;line-height:1.5}
+.closebtn{
+  position:absolute;top:calc(28px + env(safe-area-inset-top,0px));right:26px;
+  background:none;border:0;color:var(--ink-3);cursor:pointer;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-family:var(--f-body);
+}
+.closebtn:hover{color:var(--ink)}
+
+@media (max-width:820px){
+  :root{--stage:min(600px,92vw)}
+  .wrap{padding-inline:20px}
+  .row{grid-template-columns:1fr auto;gap:8px 16px}
+  .row .cat{grid-column:1/-1;margin-bottom:2px}
+  .panel{top:auto;bottom:0;right:0;width:100%;height:min(78vh,640px);
+    border-left:0;border-top:1px solid var(--line-2);border-radius:16px 16px 0 0;
+    transform:translateY(102%)}
+  .panel.open{transform:translateY(0)}
+}
+@media (max-width:620px){
+  .moon-name{display:none}
 }
 @media (prefers-reduced-motion:reduce){
-  .spinner,.counter{animation:none}
+  .drift{animation:none}
 }
 </style>
 
-<canvas id="stars" aria-hidden="true"></canvas>
-
-<header class="top wrap">
-  <div class="brandline">
-    <div class="mark">MAMF<span>&middot;</span>AI</div>
-    <div class="eyebrow">Internal tool directory</div>
-  </div>
-  <p class="lede">Every tool we've built, in one map. Hover a category to see what orbits it; click to open the full list.</p>
+<header class="masthead wrap">
+  <div class="wordmark">MAMF AI</div>
+  <div class="count" id="count"></div>
 </header>
 
-<section class="mapsec" aria-label="Orbit map">
+<section class="mapsec" aria-label="Tool map">
   <div class="stage" id="stage">
-    <button class="sun" id="sun" aria-label="MAMF AI — about this hub">
-      <span class="sun-body">
-        <span class="sun-label">MAMF AI<span class="sun-sub" id="sunSub"></span></span>
-      </span>
+    <div class="ring planet-ring"></div>
+    <div class="ring moon-ring"></div>
+    <button class="sun" id="sun" aria-label="MAMF AI — all categories">
+      <span class="sphere"></span>
+      <span class="sun-cap"><b>MAMF AI</b></span>
     </button>
   </div>
+  <p class="hint">Hover a category</p>
 </section>
 
-<div class="legend wrap" id="legend"></div>
-
 <main class="dir wrap">
-  <h2>Full directory</h2>
-  <div class="grid" id="grid"></div>
+  <div class="dir-head">
+    <h2>Directory</h2>
+    <span id="dirCount"></span>
+  </div>
+  <div id="rows"></div>
 </main>
 
-<footer class="wrap">
-  <span id="tally"></span>
-  <span>Edit the CATEGORIES block at the top of index.html to add a tool</span>
-</footer>
+<footer class="wrap" id="foot"></footer>
 
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerName" hidden>
-  <button class="closebtn" id="closebtn" aria-label="Close">&times;</button>
-  <div class="drawer-in" id="drawerIn"></div>
+<aside class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panelName" hidden>
+  <button class="closebtn" id="closebtn">Close</button>
+  <div class="panel-in" id="panelIn"></div>
 </aside>
 
 <script>
-/* =====================================================================
-   CONFIG — the only block you need to edit.
-     name  : what the tile says
-     url   : "" leaves it as "link pending"
-     note  : one line, shown in the side panel
-     gated : true adds a "sign-in required" badge
-   ===================================================================== */
-const CATEGORIES = [
+/* ==========================================================
+   CONFIG — the only block to edit.
+     url:""      renders the tool as "link pending"
+     gated:true  adds a "sign-in" marker
+   Order below = clockwise from the top of the ring.
+   ========================================================== */
+var CATEGORIES = [
   {
-    key:"underwriting",
+    name:"Prospecting",
+    blurb:"Finding and ranking the next deal before anyone else does.",
+    tools:[
+      { name:"PBS8 Database",
+        url:"https://mrare-cmd.github.io/HAP-Database/",
+        note:"Project-based Section 8 contracts, rents and renewal options." },
+      { name:"TOPA Dashboard",
+        url:"https://mrare-cmd.github.io/mrare/",
+        note:"DC TOPA and DOPA notices and offers of sale." },
+      { name:"Priority Dashboard",
+        url:"https://mrare-cmd.github.io/greysteel-hampton-roads/",
+        note:"Ranked prospecting targets and outreach status." }
+    ]
+  },
+  {
     name:"Underwriting",
-    color:"var(--p-underwriting)",
     blurb:"Models, comps and assumptions that feed a deal's numbers.",
-    orbit:1, phase:0.02,
     tools:[
       { name:"OpEx Dashboard",
         url:"https://gs-expense-comps.pages.dev/",
         gated:true,
-        note:"Operating expense comparables by market and asset type. Behind Cloudflare Access — sign in with your Greysteel account." }
+        note:"Operating expense comparables by market and asset type." }
     ]
   },
   {
-    key:"client",
     name:"Client Tools",
-    color:"var(--p-client)",
     blurb:"Things we put directly in a client's hands.",
-    orbit:1, phase:0.52,
     tools:[
       { name:"Inspection Assistant",
         url:"https://mrare-cmd.github.io/walkthrough/app.html",
-        note:"Guided property walkthrough capture that writes up the inspection for you." }
+        note:"Guided property walkthrough capture and write-up." }
     ]
   },
-  {
-    key:"comparables",
-    name:"Comparables",
-    color:"var(--p-comps)",
-    blurb:"Sales, rent and expense comp sets.",
-    orbit:2, phase:0.18,
-    tools:[]
-  },
-  {
-    key:"prospecting",
-    name:"Prospecting",
-    color:"var(--p-prospecting)",
-    blurb:"Finding and ranking the next deal before anyone else does.",
-    orbit:2, phase:0.68,
-    tools:[
-      { name:"PBS8 Database",
-        url:"https://mrare-cmd.github.io/HAP-Database/",
-        note:"Project-based Section 8 contracts, rents and renewal options — screen for mark-up-to-market." },
-      { name:"TOPA Dashboard",
-        url:"https://mrare-cmd.github.io/mrare/",
-        note:"DC TOPA / DOPA notices and offers of sale." },
-      { name:"Priority Dashboard",
-        url:"https://mrare-cmd.github.io/greysteel-hampton-roads/",
-        note:"Ranked prospecting targets and outreach status — Hampton Roads." }
-    ]
-  },
-  {
-    key:"production",
-    name:"Production",
-    color:"var(--p-production)",
-    blurb:"Turning underwriting into client-ready deliverables.",
-    orbit:3, phase:0.35,
-    tools:[]
-  },
-  {
-    key:"misc",
-    name:"Miscellaneous",
-    color:"var(--p-misc)",
-    blurb:"Everything that doesn't belong to one desk yet.",
-    orbit:3, phase:0.85,
-    tools:[]
-  }
+  { name:"Comparables", blurb:"Sales, rent and expense comp sets.", tools:[] },
+  { name:"Production",  blurb:"Turning underwriting into client-ready deliverables.", tools:[] },
+  { name:"Miscellaneous", blurb:"Everything that does not belong to one desk yet.", tools:[] }
 ];
 
-/* orbit geometry: radius as a fraction of the stage, period in seconds */
-const ORBITS = { 1:{r:.205, dur:78}, 2:{r:.305, dur:112}, 3:{r:.405, dur:150} };
+var R_PLANET = 0.300;   /* must match --r-planet */
+var R_MOON   = 0.408;   /* must match --r-moon   */
+var FAN      = 26;      /* degrees between satellites */
 
-/* ---------------------------------------------------------------- */
-const stage  = document.getElementById("stage");
-const grid   = document.getElementById("grid");
-const legend = document.getElementById("legend");
-const drawer = document.getElementById("drawer");
-const scrim  = document.getElementById("scrim");
-const nodes  = [];
+var stage  = document.getElementById("stage");
+var panel  = document.getElementById("panel");
+var scrim  = document.getElementById("scrim");
+var nodes  = [];
+var closeT = null;
 
-const totalTools   = CATEGORIES.reduce(function(n,c){ return n + c.tools.length; }, 0);
-const liveTools    = CATEGORIES.reduce(function(n,c){ return n + c.tools.filter(function(t){ return !!t.url; }).length; }, 0);
-
-document.getElementById("sunSub").textContent = CATEGORIES.length + " systems";
-document.getElementById("tally").textContent =
-  liveTools + " of " + totalTools + " tools linked across " + CATEGORIES.length + " categories";
-
-/* ---- orbit rings ---- */
-Object.keys(ORBITS).forEach(function(k){
-  var ring = document.createElement("div");
-  ring.className = "ring";
-  ring.style.width = ring.style.height = "calc(var(--stage) * " + (ORBITS[k].r * 2) + ")";
-  stage.appendChild(ring);
+var total = 0, live = 0;
+CATEGORIES.forEach(function(c){
+  total += c.tools.length;
+  live  += c.tools.filter(function(t){ return !!t.url; }).length;
 });
+document.getElementById("count").textContent = live + " tools · " + CATEGORIES.length + " categories";
+document.getElementById("dirCount").textContent = live + " of " + total + " linked";
+document.getElementById("foot").textContent =
+  "Edit the CATEGORIES block in index.html to add a tool.";
 
-/* ---- planets ---- */
-CATEGORIES.forEach(function(cat){
-  var o = ORBITS[cat.orbit];
+function sphere(){ var s = document.createElement("span"); s.className = "sphere"; return s; }
+function frac(k){ return "calc(var(--stage) * " + k.toFixed(5) + ")"; }
+
+/* ---- build the ring ---- */
+CATEGORIES.forEach(function(cat, i){
+  var theta = (-90 + i * (360 / CATEGORIES.length)) * Math.PI / 180;
+  var px = R_PLANET * Math.cos(theta);
+  var py = R_PLANET * Math.sin(theta);
 
   var node = document.createElement("div");
   node.className = "node";
-  node.style.setProperty("--c", cat.color);
-  node.style.setProperty("--a0", (cat.phase * 360).toFixed(2) + "deg");
-  node.style.setProperty("--dur", o.dur + "s");
+  node.style.setProperty("--x", frac(px));
+  node.style.setProperty("--y", frac(py));
 
-  var spinner = document.createElement("div");
-  spinner.className = "spinner";
-  var pin = document.createElement("div");
-  pin.className = "pin";
-  pin.style.setProperty("--r", "calc(var(--stage) * " + o.r + ")");
-  var counter = document.createElement("div");
-  counter.className = "counter";
+  var reach = document.createElement("div");
+  reach.className = "reach";
+  node.appendChild(reach);
 
-  /* moons fan out from the planet */
-  var moons = document.createElement("div");
-  moons.className = "moons";
+  /* satellites sit on the outer circumference, fanned around their parent's angle */
   var n = cat.tools.length;
-  var spread = n > 1 ? 104 : 0;
-  var mr = "calc(var(--stage) * .092)";
-  cat.tools.forEach(function(tool, i){
-    var a = (n === 1 ? 0 : -spread / 2 + (spread / (n - 1)) * i) - 6;
-    var rad = a * Math.PI / 180;
-    var el = document.createElement("div");
-    el.className = "moon";
-    el.style.setProperty("--mx", "calc(" + mr + " * " + Math.cos(rad).toFixed(4) + ")");
-    el.style.setProperty("--my", "calc(" + mr + " * " + Math.sin(rad).toFixed(4) + ")");
-    el.style.transitionDelay = (60 + i * 55) + "ms";
+  cat.tools.forEach(function(tool, j){
+    var phi = theta + ((j - (n - 1) / 2) * FAN) * Math.PI / 180;
+    var el = document.createElement(tool.url ? "a" : "span");
+    el.className = "moon" + (tool.url ? "" : " pending") +
+                   (Math.sin(phi) < 0 ? " up" : "");
+    if (tool.url) { el.href = tool.url; el.target = "_blank"; el.rel = "noopener"; }
+    el.style.setProperty("--mx", frac(R_MOON * Math.cos(phi) - px));
+    el.style.setProperty("--my", frac(R_MOON * Math.sin(phi) - py));
+    el.style.transitionDelay = (j * 60) + "ms, " + (j * 60) + "ms";
 
-    var dot = document.createElement("span");
-    dot.className = "moon-dot";
+    var body = document.createElement("span");
+    body.className = "moon-body";
+    body.appendChild(sphere());
 
-    var link = document.createElement(tool.url ? "a" : "span");
-    link.className = "moon-link" + (tool.url ? "" : " pending");
-    if (tool.url) { link.href = tool.url; link.target = "_blank"; link.rel = "noopener"; }
-    link.appendChild(document.createTextNode(tool.name));
-    if (!tool.url) {
-      var tag = document.createElement("span");
-      tag.className = "tag";
-      tag.textContent = "link pending";
-      link.appendChild(tag);
+    var nm = document.createElement("span");
+    nm.className = "moon-name";
+    nm.appendChild(document.createTextNode(tool.name));
+    if (tool.gated) {
+      var lk = document.createElement("span");
+      lk.className = "lock"; lk.textContent = "SIGN-IN";
+      nm.appendChild(lk);
     }
-    el.appendChild(dot);
-    el.appendChild(link);
-    moons.appendChild(el);
+    body.appendChild(nm);
+    el.appendChild(body);
+    node.appendChild(el);
   });
+
+  /* the planet itself drifts gently; it settles the moment it is active */
+  var drift = document.createElement("div");
+  drift.className = "drift";
+  drift.style.setProperty("--dx", (Math.sin(i * 2.1) * 5).toFixed(2) + "px");
+  drift.style.setProperty("--dy", (Math.cos(i * 1.7) * 6).toFixed(2) + "px");
+  drift.style.setProperty("--fd", (7.5 + (i % 4) * 1.6).toFixed(1) + "s");
+  drift.style.setProperty("--fdl", (-i * 1.3).toFixed(1) + "s");
 
   var planet = document.createElement("button");
   planet.className = "planet";
   planet.setAttribute("aria-label", cat.name + " — " + n + (n === 1 ? " tool" : " tools"));
-  var body = document.createElement("span"); body.className = "planet-body";
-  var name = document.createElement("span"); name.className = "planet-name"; name.textContent = cat.name;
-  var count = document.createElement("span"); count.className = "planet-count";
-  count.textContent = n ? n + (n === 1 ? " tool" : " tools") : "no tools yet";
-  planet.appendChild(body); planet.appendChild(name); planet.appendChild(count);
+  planet.appendChild(sphere());
+  var nm2 = document.createElement("span");
+  nm2.className = "planet-name"; nm2.textContent = cat.name;
+  var meta = document.createElement("span");
+  meta.className = "planet-meta";
+  meta.textContent = n ? n + (n === 1 ? " tool" : " tools") : "no tools yet";
+  planet.appendChild(nm2); planet.appendChild(meta);
 
-  counter.appendChild(moons); counter.appendChild(planet);
-  pin.appendChild(counter);
-  spinner.appendChild(pin);
-  node.appendChild(spinner);
+  drift.appendChild(planet);
+  node.appendChild(drift);
   stage.appendChild(node);
   nodes.push(node);
 
-  function activate(){
-    var pr = planet.getBoundingClientRect();
-    var sr = stage.getBoundingClientRect();
-    moons.classList.toggle("flip", (pr.left + pr.width / 2) > (sr.left + sr.width / 2));
-    stage.classList.add("frozen");
-    nodes.forEach(function(x){ x.classList.toggle("is-active", x === node); });
-  }
-  function deactivate(){
-    stage.classList.remove("frozen");
-    node.classList.remove("is-active");
-  }
-
-  node.addEventListener("pointerenter", activate);
-  node.addEventListener("pointerleave", deactivate);
-  planet.addEventListener("focus", activate);
-  node.addEventListener("focusout", function(e){ if (!node.contains(e.relatedTarget)) deactivate(); });
-  planet.addEventListener("click", function(){ openDrawer(cat); });
+  node.addEventListener("pointerenter", function(){ activate(node); });
+  node.addEventListener("pointerleave", release);
+  planet.addEventListener("focus", function(){ activate(node); });
+  node.addEventListener("focusout", function(e){
+    if (!node.contains(e.relatedTarget)) release();
+  });
+  planet.addEventListener("click", function(){ openPanel(cat); });
 });
 
-/* ---- legend ---- */
-CATEGORIES.forEach(function(cat){
-  var s = document.createElement("span");
-  var b = document.createElement("b"); b.textContent = cat.name;
-  s.appendChild(b);
-  s.appendChild(document.createTextNode(" " + cat.tools.length));
-  legend.appendChild(s);
-});
-
-/* ---- shared row builder ---- */
-function toolRow(tool){
-  var li = document.createElement("li");
-  var row = document.createElement(tool.url ? "a" : "span");
-  row.className = "row" + (tool.url ? "" : " pending");
-  if (tool.url) { row.href = tool.url; row.target = "_blank"; row.rel = "noopener"; }
-  row.appendChild(document.createTextNode(tool.name));
-  if (tool.url) {
-    if (tool.gated) {
-      var g = document.createElement("span");
-      g.className = "gate"; g.textContent = "sign-in";
-      row.appendChild(g);
-    }
-    var arrow = document.createElement("span");
-    arrow.className = "arrow"; arrow.textContent = "↗";
-    row.appendChild(arrow);
-  } else {
-    var chip = document.createElement("span");
-    chip.className = "chip"; chip.textContent = "link pending";
-    row.appendChild(chip);
-  }
-  li.appendChild(row);
-  return li;
+function activate(node){
+  clearTimeout(closeT);
+  stage.classList.add("focused");
+  nodes.forEach(function(n){ n.classList.toggle("is-active", n === node); });
 }
+/* a grace period, so crossing the gap out to a satellite never dismisses it */
+function release(){
+  clearTimeout(closeT);
+  closeT = setTimeout(function(){
+    stage.classList.remove("focused");
+    nodes.forEach(function(n){ n.classList.remove("is-active"); });
+  }, 320);
+}
+stage.addEventListener("pointerleave", release);
 
-/* ---- directory cards ---- */
+/* ---- directory ---- */
+var rows = document.getElementById("rows");
 CATEGORIES.forEach(function(cat){
-  var card = document.createElement("article");
-  card.className = "cat";
-  card.style.setProperty("--c", cat.color);
-
-  var head = document.createElement("div"); head.className = "cat-head";
-  var dot = document.createElement("span"); dot.className = "cat-dot";
-  var nm = document.createElement("h3"); nm.className = "cat-name"; nm.textContent = cat.name;
-  var ct = document.createElement("span"); ct.className = "cat-n";
-  ct.textContent = String(cat.tools.length).padStart(2, "0");
-  head.appendChild(dot); head.appendChild(nm); head.appendChild(ct);
-
-  var blurb = document.createElement("p"); blurb.className = "cat-blurb"; blurb.textContent = cat.blurb;
-  card.appendChild(head); card.appendChild(blurb);
-
-  if (cat.tools.length) {
-    var ul = document.createElement("ul"); ul.className = "links";
-    cat.tools.forEach(function(t){ ul.appendChild(toolRow(t)); });
-    card.appendChild(ul);
-  } else {
-    var e = document.createElement("div"); e.className = "empty";
-    e.textContent = "No tools mapped here yet";
-    card.appendChild(e);
+  if (!cat.tools.length) {
+    var s = document.createElement("div");
+    s.className = "row empty";
+    s.innerHTML = '<span class="cat"></span>';
+    s.querySelector(".cat").textContent = cat.name;
+    var nm = document.createElement("span"); nm.className = "name"; nm.textContent = "Awaiting links";
+    var en = document.createElement("span"); en.className = "end"; en.textContent = "—";
+    s.appendChild(nm); s.appendChild(en);
+    rows.appendChild(s);
+    return;
   }
-  grid.appendChild(card);
+  cat.tools.forEach(function(tool, j){
+    var row = document.createElement(tool.url ? "a" : "div");
+    row.className = "row" + (tool.url ? "" : " empty");
+    if (tool.url) { row.href = tool.url; row.target = "_blank"; row.rel = "noopener"; }
+
+    var c = document.createElement("span"); c.className = "cat";
+    c.textContent = j === 0 ? cat.name : "";
+
+    var nm = document.createElement("span"); nm.className = "name";
+    nm.appendChild(document.createTextNode(tool.name));
+    if (tool.note) {
+      var note = document.createElement("span");
+      note.className = "note"; note.textContent = tool.note;
+      nm.appendChild(note);
+    }
+
+    var end = document.createElement("span"); end.className = "end";
+    end.textContent = tool.url ? (tool.gated ? "Sign-in  ↗" : "Open  ↗") : "Link pending";
+
+    row.appendChild(c); row.appendChild(nm); row.appendChild(end);
+    rows.appendChild(row);
+  });
 });
 
-/* ---- drawer ---- */
-var drawerIn = document.getElementById("drawerIn");
+/* ---- panel ---- */
+var panelIn = document.getElementById("panelIn");
 var lastFocus = null;
 
-function openDrawer(cat){
+function openPanel(cat){
   lastFocus = document.activeElement;
-  drawerIn.innerHTML = "";
-  drawerIn.style.setProperty("--c", cat.color);
+  panelIn.innerHTML = "";
 
-  var head = document.createElement("div"); head.className = "cat-head";
-  var dot = document.createElement("span"); dot.className = "cat-dot";
-  var nm = document.createElement("h2"); nm.className = "cat-name"; nm.id = "drawerName"; nm.textContent = cat.name;
-  head.appendChild(dot); head.appendChild(nm);
+  var h = document.createElement("h2"); h.id = "panelName"; h.textContent = cat.name;
+  var p = document.createElement("p"); p.className = "lede"; p.textContent = cat.blurb;
+  panelIn.appendChild(h); panelIn.appendChild(p);
 
-  var blurb = document.createElement("p");
-  blurb.className = "cat-blurb";
-  blurb.style.marginTop = "10px";
-  blurb.textContent = cat.blurb;
-  drawerIn.appendChild(head); drawerIn.appendChild(blurb);
+  var h3 = document.createElement("h3");
+  h3.textContent = cat.tools.length
+    ? (cat.tools.length === 1 ? "1 tool" : cat.tools.length + " tools")
+    : "Nothing here yet";
+  panelIn.appendChild(h3);
 
-  var h = document.createElement("h3");
-  h.textContent = cat.tools.length ? (cat.tools.length === 1 ? "1 tool" : cat.tools.length + " tools") : "Nothing here yet";
-  drawerIn.appendChild(h);
-
-  if (cat.tools.length) {
-    var ul = document.createElement("ul");
-    ul.className = "links";
-    ul.style.borderTop = "0";
-    ul.style.paddingTop = "0";
-    cat.tools.forEach(function(t){
-      var li = toolRow(t);
-      if (t.note) {
-        var p = document.createElement("p");
-        p.className = "note";
-        p.textContent = t.note;
-        li.appendChild(p);
-      }
-      ul.appendChild(li);
-    });
-    drawerIn.appendChild(ul);
-  } else {
-    var p2 = document.createElement("p");
-    p2.className = "cat-blurb";
-    p2.textContent = "Send the links for this category and they'll appear here.";
-    drawerIn.appendChild(p2);
+  if (!cat.tools.length) {
+    var e = document.createElement("p");
+    e.className = "lede"; e.style.marginTop = "18px";
+    e.textContent = "Send the links for this category and they will appear here.";
+    panelIn.appendChild(e);
   }
 
-  drawer.hidden = false;
+  cat.tools.forEach(function(tool){
+    var row = document.createElement(tool.url ? "a" : "div");
+    row.className = "prow";
+    if (tool.url) { row.href = tool.url; row.target = "_blank"; row.rel = "noopener"; }
+
+    var t = document.createElement("span"); t.className = "t";
+    t.appendChild(document.createTextNode(tool.name));
+    var end = document.createElement("span"); end.className = "end";
+    end.textContent = tool.url ? (tool.gated ? "Sign-in  ↗" : "Open  ↗") : "Link pending";
+    t.appendChild(end);
+    row.appendChild(t);
+
+    if (tool.note) {
+      var n = document.createElement("span"); n.className = "n"; n.textContent = tool.note;
+      row.appendChild(n);
+    }
+    panelIn.appendChild(row);
+  });
+
+  panel.hidden = false;
   requestAnimationFrame(function(){
-    drawer.classList.add("open");
+    panel.classList.add("open");
     scrim.classList.add("open");
   });
   document.getElementById("closebtn").focus();
 }
 
-function closeDrawer(){
-  drawer.classList.remove("open");
+function closePanel(){
+  panel.classList.remove("open");
   scrim.classList.remove("open");
-  setTimeout(function(){ drawer.hidden = true; }, 340);
+  setTimeout(function(){ panel.hidden = true; }, 420);
   if (lastFocus) lastFocus.focus();
 }
-document.getElementById("closebtn").addEventListener("click", closeDrawer);
-scrim.addEventListener("click", closeDrawer);
+document.getElementById("closebtn").addEventListener("click", closePanel);
+scrim.addEventListener("click", closePanel);
 document.addEventListener("keydown", function(e){
-  if (e.key === "Escape" && !drawer.hidden) closeDrawer();
+  if (e.key === "Escape" && !panel.hidden) closePanel();
 });
 
 document.getElementById("sun").addEventListener("click", function(){
-  openDrawer({
+  openPanel({
     name: "MAMF AI",
-    color: "var(--sun)",
-    blurb: "The hub for every tool the team has built. Each orbiting category holds its own projects — hover a planet to see them, or browse the full directory below.",
+    blurb: "Every tool the team has built, in one place. Each category on the ring holds its own projects — hover to bring them out, or use the directory below.",
     tools: CATEGORIES.map(function(c){
       return { name: c.name, url: "", note: c.blurb };
     })
   });
 });
-
-/* ---- starfield ---- */
-(function(){
-  var cv = document.getElementById("stars");
-  var ctx = cv.getContext("2d");
-  function draw(){
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var w = cv.clientWidth, h = cv.clientHeight;
-    cv.width = w * dpr; cv.height = h * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-    var count = Math.round((w * h) / 9000);
-    for (var i = 0; i < count; i++){
-      var x = Math.random() * w, y = Math.random() * h;
-      var r = Math.random() * 1.25 + 0.25;
-      var a = (Math.random() * 0.55 + 0.12).toFixed(3);
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = i % 11 === 0 ? "rgba(243,182,92," + a + ")"
-                    : i % 7  === 0 ? "rgba(111,168,255," + a + ")"
-                    : "rgba(233,238,248," + a + ")";
-      ctx.fill();
-    }
-  }
-  draw();
-  var t;
-  window.addEventListener("resize", function(){ clearTimeout(t); t = setTimeout(draw, 180); });
-})();
 </script>
