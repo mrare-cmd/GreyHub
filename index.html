@@ -5,9 +5,9 @@
 
 <style>
 /* ============================================================
-   Glass node network. A mesh of wires between category nodes,
-   traffic moving along them, a frosted core that blurs the
-   mesh passing behind it. One hue: light steel blue.
+   Glass node network. Each category carries its tools in a tight
+   orbit; hovering pushes them out to the satellite ring. One hue:
+   light steel blue. A frosted core blurs the wires behind it.
    ============================================================ */
 :root{
   --bg:#06070A;
@@ -24,7 +24,7 @@
   --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
   --f-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
 
-  --stage:min(700px,88vw);
+  --stage:min(1000px,92vw);
 }
 
 *{box-sizing:border-box}
@@ -32,8 +32,8 @@ html,body{margin:0}
 body{
   font-family:var(--f-body);font-size:15px;line-height:1.55;color:var(--ink);
   background:
-    radial-gradient(760px 600px at 50% 40%, #0E1118 0%, rgba(14,17,24,0) 72%),
-    radial-gradient(520px 420px at 84% 6%, rgba(176,196,222,.06) 0%, rgba(176,196,222,0) 70%),
+    radial-gradient(980px 800px at 50% 44%, #0E1118 0%, rgba(14,17,24,0) 72%),
+    radial-gradient(620px 500px at 86% 4%, rgba(176,196,222,.06) 0%, rgba(176,196,222,0) 70%),
     var(--bg);
   background-attachment:fixed;
   -webkit-font-smoothing:antialiased;
@@ -42,7 +42,7 @@ a{color:inherit;text-decoration:none}
 ::selection{background:rgba(176,196,222,.22)}
 :focus-visible{outline:1px solid var(--accent);outline-offset:3px;border-radius:3px}
 
-.wrap{max-width:1120px;margin:0 auto;padding-inline:28px}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:28px}
 
 .glass{
   background:var(--glass);
@@ -59,48 +59,45 @@ a{color:inherit;text-decoration:none}
   justify-content:space-between;gap:20px;padding-block:32px 0;
 }
 .wordmark{
-  font-family:var(--f-display);font-weight:600;font-size:12.5px;
+  font-family:var(--f-display);font-weight:600;font-size:13px;
   letter-spacing:.38em;text-transform:uppercase;color:var(--ink);
 }
 .count{font-size:11.5px;letter-spacing:.1em;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
-/* ---------- map + legend ---------- */
-.mapsec{
-  display:flex;align-items:center;justify-content:center;gap:clamp(18px,4vw,60px);
-  flex-wrap:wrap;padding-block:6px 0;
-}
-.stage{position:relative;width:var(--stage);height:var(--stage);flex:none}
+/* ---------- map ---------- */
+.mapsec{position:relative;display:flex;flex-direction:column;align-items:center;padding-block:0}
+.stage{position:relative;width:var(--stage);height:var(--stage);flex:none;margin-block:-14px}
 #map{position:absolute;inset:0;width:100%;height:100%;display:block}
 
 .core{
   position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:calc(var(--stage) * .225);height:calc(var(--stage) * .225);
+  width:calc(var(--stage) * .235);height:calc(var(--stage) * .235);
   border-radius:50%;
   background:rgba(255,255,255,.055);
   border:1px solid rgba(255,255,255,.16);
-  -webkit-backdrop-filter:blur(12px) saturate(180%);
-  backdrop-filter:blur(12px) saturate(180%);
+  -webkit-backdrop-filter:blur(13px) saturate(180%);
+  backdrop-filter:blur(13px) saturate(180%);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.26),
-    inset 0 -16px 34px rgba(176,196,222,.07),
-    0 0 48px rgba(176,196,222,.10),
-    0 20px 46px rgba(0,0,0,.5);
-  display:grid;place-content:center;gap:6px;text-align:center;
+    inset 0 -18px 38px rgba(176,196,222,.07),
+    0 0 56px rgba(176,196,222,.10),
+    0 22px 50px rgba(0,0,0,.5);
+  display:grid;place-content:center;gap:7px;text-align:center;
   cursor:pointer;z-index:3;
   transition:border-color .4s ease, box-shadow .4s ease, opacity .5s ease;
 }
 .core b{
   display:block;font-family:var(--f-display);font-weight:600;
-  font-size:calc(var(--stage) * .034);letter-spacing:.2em;color:var(--ink);line-height:1;
+  font-size:calc(var(--stage) * .032);letter-spacing:.2em;color:var(--ink);line-height:1;
 }
 .core i{
-  display:block;font-style:normal;font-size:calc(var(--stage) * .0155);
+  display:block;font-style:normal;font-size:calc(var(--stage) * .0145);
   letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);
   font-variant-numeric:tabular-nums;
 }
 .core:hover{
   border-color:rgba(176,196,222,.45);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.32), 0 0 74px rgba(176,196,222,.2), 0 20px 46px rgba(0,0,0,.5);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32), 0 0 84px rgba(176,196,222,.2), 0 22px 50px rgba(0,0,0,.5);
 }
 .stage.focused .core{opacity:.5}
 
@@ -112,17 +109,16 @@ a{color:inherit;text-decoration:none}
 @keyframes twinkle{from{opacity:.2}to{opacity:.85}}
 
 /* ---------- spokes: every category wired to the core, nothing else ---------- */
-.spoke{fill:none;stroke:var(--wire);stroke-width:1;transition:stroke .45s ease,stroke-width .45s ease}
-.spoke.lit{stroke:var(--wire-hot);stroke-width:1.4}
+.spoke{fill:none;stroke:var(--wire);stroke-width:1.1;transition:stroke .45s ease,stroke-width .45s ease}
+.spoke.lit{stroke:var(--wire-hot);stroke-width:1.5}
 #map.focused .spoke:not(.lit){stroke:rgba(176,196,222,.05)}
 
 .packet{fill:var(--accent-hot)}
 #map.focused .packet{opacity:.3}
 
-.wire{fill:none;stroke:var(--wire-hot);stroke-width:1.1;
-  stroke-dasharray:1;stroke-dashoffset:1;
-  transition:stroke-dashoffset .7s cubic-bezier(.3,.7,.3,1) .04s}
-.wire.on{stroke-dashoffset:0}
+/* tethers from a category to its tools — geometry redrawn every frame */
+.wire{fill:none;stroke:var(--wire-hot);stroke-width:1.1;opacity:0;transition:opacity .4s ease}
+.wire.on{opacity:.75}
 
 /* ---------- nodes ---------- */
 .cat{transition:opacity .45s ease}
@@ -130,19 +126,18 @@ a{color:inherit;text-decoration:none}
 #map.focused .cat.on{opacity:1}
 
 .glow{transition:opacity .45s ease}
-.bead{fill:var(--accent-hot);transition:r .45s cubic-bezier(.2,.7,.25,1)}
+.bead{fill:var(--accent-hot)}
 .bead.hollow{fill:rgba(176,196,222,.14);stroke:rgba(176,196,222,.42);stroke-width:1.2}
-.cat.on .cat-hold .bead{r:16}
+.cat-bead{transition:r .45s cubic-bezier(.2,.7,.25,1)}
+.cat.on .cat-bead{r:23}
 .ringlet{fill:none;stroke:rgba(176,196,222,.5);stroke-width:1;stroke-dasharray:2 6;
   opacity:0;transition:opacity .45s ease}
 .cat.on .ringlet{opacity:1}
 
-.sat{opacity:0;pointer-events:none;transition:opacity .4s ease}
-.cat.on .sat{opacity:1;pointer-events:auto}
+/* tools are always on screen — in a tight orbit at rest, flung out on hover */
+.sat{pointer-events:none}
+.cat.on .sat{pointer-events:auto}
 .satwrap{cursor:pointer}
-/* hovering one tool lifts the whole set; the one under the cursor lifts furthest */
-.cat.reaching .sat .bead{r:13}
-.satwrap:hover .bead,.satwrap:focus-visible .bead{r:17}
 .satwrap:hover .glow,.satwrap:focus-visible .glow{opacity:1.5}
 
 /* labels */
@@ -150,19 +145,24 @@ a{color:inherit;text-decoration:none}
 .lbl rect{fill:rgba(255,255,255,.06);stroke:rgba(255,255,255,.11);stroke-width:1}
 .lbl.flat rect{fill:rgba(6,7,10,.6);stroke:none}
 .lbl.cat-lbl text{
-  font-family:var(--f-display);font-weight:600;font-size:17px;
+  font-family:var(--f-display);font-weight:600;font-size:16px;
   letter-spacing:.18em;fill:var(--ink-2);transition:fill .4s ease;
 }
 .cat.on .lbl.cat-lbl text{fill:var(--ink)}
 .lbl.cat-num text{
-  font-family:var(--f-display);font-weight:500;font-size:12px;letter-spacing:.22em;
+  font-family:var(--f-display);font-weight:500;font-size:11.5px;letter-spacing:.22em;
   fill:var(--ink-3);font-variant-numeric:tabular-nums;transition:fill .4s ease;
 }
 .cat.on .lbl.cat-num text{fill:var(--accent)}
-.lbl.sat-lbl{transform:translate(0px,31px);transition:transform .35s cubic-bezier(.2,.7,.25,1)}
-.cat.reaching .lbl.sat-lbl{transform:translate(0px,35px)}
-.satwrap:hover .lbl.sat-lbl,.satwrap:focus-visible .lbl.sat-lbl{transform:translate(0px,40px)}
-.lbl.sat-lbl text{font-family:var(--f-body);font-weight:400;font-size:15px;fill:var(--ink-2);
+
+.lbl.sat-lbl{
+  opacity:0;transform:translate(0px,36px);
+  transition:transform .4s cubic-bezier(.2,.7,.25,1), opacity .3s ease;
+}
+.cat.on .lbl.sat-lbl{opacity:1;transition:transform .4s cubic-bezier(.2,.7,.25,1), opacity .3s ease .22s}
+.cat.reaching .lbl.sat-lbl{transform:translate(0px,40px)}
+.satwrap:hover .lbl.sat-lbl,.satwrap:focus-visible .lbl.sat-lbl{transform:translate(0px,46px)}
+.lbl.sat-lbl text{font-family:var(--f-body);font-weight:400;font-size:14px;fill:var(--ink-2);
   transition:fill .3s ease}
 .satwrap:hover .lbl.sat-lbl text{fill:var(--ink)}
 .satwrap:hover .lbl.sat-lbl rect{fill:rgba(176,196,222,.14);stroke:rgba(176,196,222,.4)}
@@ -170,19 +170,19 @@ a{color:inherit;text-decoration:none}
 
 .hit{fill:transparent;pointer-events:all;cursor:pointer}
 
-/* ---------- legend ---------- */
-.legend{padding:22px 24px;min-width:206px}
+/* ---------- legend, tucked into the corner the ring leaves empty ---------- */
+.legend{position:absolute;top:4px;right:0;z-index:4;width:216px;padding:20px 22px}
 .legend h3{font-family:var(--f-display);font-weight:600;font-size:10px;letter-spacing:.26em;
-  text-transform:uppercase;color:var(--ink-3);margin:0 0 16px}
-.legend ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:13px}
-.legend li{display:flex;align-items:center;gap:11px;font-size:13.5px;color:var(--ink-2)}
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 15px}
+.legend ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.legend li{display:flex;align-items:center;gap:11px;font-size:13px;color:var(--ink-2)}
 .legend b{margin-left:auto;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
 .ldot{width:9px;height:9px;border-radius:50%;flex:none}
 .ldot.live{background:var(--accent-hot);box-shadow:0 0 10px rgba(176,196,222,.85)}
 .ldot.gated{background:rgba(176,196,222,.3);box-shadow:inset 0 0 0 1px rgba(176,196,222,.75)}
 .ldot.void{background:none;box-shadow:inset 0 0 0 1px rgba(176,196,222,.26)}
 
-.hint{width:100%;text-align:center;margin:0;padding-block:0 56px;
+.hint{margin:0;padding-block:0 54px;
   font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-3)}
 
 /* ---------- directory ---------- */
@@ -193,7 +193,7 @@ a{color:inherit;text-decoration:none}
   letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2);margin:0}
 .dir-head span{font-size:11.5px;color:var(--ink-3);letter-spacing:.08em;font-variant-numeric:tabular-nums}
 
-.row{display:grid;grid-template-columns:168px minmax(0,1fr) auto;align-items:baseline;gap:22px;
+.row{display:grid;grid-template-columns:180px minmax(0,1fr) auto;align-items:baseline;gap:24px;
   padding:18px 12px;margin-inline:-12px;border-bottom:1px solid rgba(255,255,255,.055);
   border-radius:10px;transition:background .2s ease}
 a.row:hover{background:rgba(176,196,222,.06)}
@@ -214,7 +214,7 @@ footer{padding-block:0 60px;font-size:11px;letter-spacing:.1em;color:var(--ink-3
 .scrim{position:fixed;inset:0;z-index:20;background:rgba(3,4,6,.7);backdrop-filter:blur(5px);
   opacity:0;pointer-events:none;transition:opacity .3s ease}
 .scrim.open{opacity:1;pointer-events:auto}
-.panel{position:fixed;z-index:21;top:0;right:0;height:100%;width:min(430px,92vw);
+.panel{position:fixed;z-index:21;top:0;right:0;height:100%;width:min(440px,92vw);
   background:rgba(14,16,21,.84);border-left:1px solid var(--glass-line);
   -webkit-backdrop-filter:blur(24px) saturate(150%);backdrop-filter:blur(24px) saturate(150%);
   transform:translateX(102%);transition:transform .42s cubic-bezier(.2,.75,.25,1);
@@ -239,9 +239,8 @@ a.prow:hover .t .end{color:var(--accent)}
   font-size:10.5px;letter-spacing:.2em;text-transform:uppercase}
 .closebtn:hover{color:var(--accent)}
 
-@media (max-width:1040px){
-  .mapsec{flex-direction:column}
-  .legend{width:min(420px,100%)}
+@media (max-width:1100px){
+  .legend{position:static;width:min(440px,100%);margin-top:-8px;margin-bottom:26px}
 }
 @media (max-width:820px){
   .wrap{padding-inline:18px}
@@ -252,9 +251,6 @@ a.prow:hover .t .end{color:var(--accent)}
     border-left:0;border-top:1px solid var(--glass-line);border-radius:16px 16px 0 0;
     transform:translateY(102%)}
   .panel.open{transform:translateY(0)}
-}
-@media (max-width:560px){
-  .lbl.sat-lbl{display:none}
 }
 @media (prefers-reduced-motion:reduce){
   .sky-dot{animation:none;opacity:.5}
@@ -332,12 +328,18 @@ var CATEGORIES = [
   { name:"Miscellaneous", blurb:"Everything that does not belong to one desk yet.", tools:[] }
 ];
 
-var R_CAT    = 312;  /* the one circumference every category sits on  */
-var R_SAT    = 424;  /* where a category's tools are pushed out to    */
-var R_CORE_IN = 96;  /* spokes start here, tucked under the glass core */
-var FAN      = 26;   /* degrees between tools                         */
-var SPIN     = 620;  /* seconds for one revolution                    */
-var PACKETS  = 12;   /* how much traffic rides the spokes             */
+/* geometry, in viewBox units (the box is 1040 across, centred on 0,0) */
+var R_CAT     = 318;  /* the circumference every category sits on        */
+var R_SAT     = 442;  /* where tools land once pushed out                */
+var R_MINI    = 40;   /* how far a tool orbits its category at rest      */
+var R_CORE_IN = 104;  /* spokes start here, tucked under the glass core  */
+var CAT_R     = 17;   /* category bead                                   */
+var SAT_R     = 14;   /* tool bead, pushed out                           */
+var MINI_R    = 5.5;  /* tool bead, at rest in its little orbit          */
+var FAN       = 25;   /* degrees between tools once pushed out           */
+var SPIN      = 620;  /* seconds per revolution of the main ring         */
+var MINI_SPIN = 95;   /* seconds per revolution of a tool around its own */
+var PACKETS   = 12;   /* how much traffic rides the spokes               */
 
 var NS = "http://www.w3.org/2000/svg";
 var XL = "http://www.w3.org/1999/xlink";
@@ -353,30 +355,17 @@ function el(n, a){
 function pol(r, deg){ var t = deg * Math.PI / 180; return [r * Math.cos(t), r * Math.sin(t)]; }
 function fmt(p){ return p[0].toFixed(2) + " " + p[1].toFixed(2); }
 function label(cls, y, text){
-  var g = el("g", { class:"lbl " + cls, transform:"translate(0," + y + ")" });
+  var g = el("g", { class:"lbl " + cls });
+  if (y !== null) g.setAttribute("transform", "translate(0," + y + ")");
   g.appendChild(el("rect", { x:"-1", y:"-1", width:"2", height:"2", rx:"9" }));
   var t = el("text", {}); t.textContent = text;
   g.appendChild(t);
   return g;
 }
-function bead(g, r, hollow){
-  g.appendChild(el("circle", { class:"glow", cx:0, cy:0, r:(r * 3.4).toFixed(1),
-    fill:"url(#halo)", opacity:hollow ? .4 : 1 }));
-  g.appendChild(el("circle", { class:"bead" + (hollow ? " hollow" : ""), cx:0, cy:0, r:r }));
-}
-
-/* ---------- defs ---------- */
-var defs = el("defs", {});
-var halo = el("radialGradient", { id:"halo" });
-[[0,.44],[.32,.17],[.66,.04],[1,0]].forEach(function(s){
-  halo.appendChild(el("stop", { offset:(s[0]*100)+"%", "stop-color":"#B0C4DE", "stop-opacity":s[1] }));
-});
-defs.appendChild(halo);
-map.appendChild(defs);
 
 /* ---------- background constellation ----------
-   Decoration only: it sits under everything, never reacts to the pointer, and
-   drifts the opposite way at a third the speed so it reads as depth, not wiring. */
+   Decoration only: under everything, no pointer events, drifting the other
+   way at a third the speed so it reads as depth rather than wiring. */
 var sky = el("g", { class:"sky" });
 map.appendChild(sky);
 (function(){
@@ -384,7 +373,7 @@ map.appendChild(sky);
   while (sp.length < 62 && tries < 6000){
     tries++;
     var x = (Math.random() * 2 - 1) * 502, y = (Math.random() * 2 - 1) * 502;
-    if (x * x + y * y < 128 * 128) continue;          /* keep clear of the core */
+    if (x * x + y * y < 140 * 140) continue;
     var ok = true;
     for (var i = 0; i < sp.length; i++){
       var dx = sp[i][0] - x, dy = sp[i][1] - y;
@@ -392,7 +381,6 @@ map.appendChild(sky);
     }
     if (ok) sp.push([x, y]);
   }
-
   var lines = el("g", {}), seen = {};
   for (var i = 0; i < sp.length; i++){
     var near = [];
@@ -412,7 +400,6 @@ map.appendChild(sky);
     }
   }
   sky.appendChild(lines);
-
   var dots = el("g", {});
   sp.forEach(function(p){
     var c = el("circle", { class:"sky-dot", cx:p[0].toFixed(1), cy:p[1].toFixed(1),
@@ -426,19 +413,29 @@ map.appendChild(sky);
   sky.appendChild(dots);
 })();
 
-/* mesh rotates as one rigid piece; marks are translated so text stays upright */
-var mesh  = el("g", { class:"mesh" });
-var marks = el("g", { class:"marks" });
+/* defs */
+var defs = el("defs", {});
+var halo = el("radialGradient", { id:"halo" });
+[[0,.44],[.32,.17],[.66,.04],[1,0]].forEach(function(s){
+  halo.appendChild(el("stop", { offset:(s[0]*100)+"%", "stop-color":"#B0C4DE", "stop-opacity":s[1] }));
+});
+defs.appendChild(halo);
+map.appendChild(defs);
+
+/* mesh turns as one rigid piece; tethers and marks are placed per frame */
+var mesh    = el("g", { class:"mesh" });
+var tethers = el("g", { class:"tethers" });
+var marks   = el("g", { class:"marks" });
 map.appendChild(mesh);
+map.appendChild(tethers);
 map.appendChild(marks);
 
 /* ---------- one spoke per category, core outward; nothing cross-links ---------- */
 var STEP = 360 / CATEGORIES.length;
-var pts = CATEGORIES.map(function(c, i){ return pol(R_CAT, -90 + i * STEP); });
 var spokeEls = CATEGORIES.map(function(c, i){
   var theta = -90 + i * STEP;
   var p = el("path", { class:"spoke", id:"sp" + i,
-    d:"M " + fmt(pol(R_CORE_IN, theta)) + " L " + fmt(pol(R_CAT - 18, theta)) });
+    d:"M " + fmt(pol(R_CORE_IN, theta)) + " L " + fmt(pol(R_CAT - 26, theta)) });
   mesh.appendChild(p);
   return p;
 });
@@ -449,7 +446,7 @@ if (!reduce){
     var src = spokeEls[k % spokeEls.length];
     var dur = (3.4 + Math.random() * 4.4).toFixed(2);
     var begin = (-Math.random() * dur).toFixed(2) + "s";
-    var dot = el("circle", { class:"packet", r:(1.8 + Math.random() * 1.5).toFixed(1), opacity:"0" });
+    var dot = el("circle", { class:"packet", r:(1.9 + Math.random() * 1.6).toFixed(1), opacity:"0" });
     var mo = el("animateMotion", { dur:dur + "s", begin:begin, repeatCount:"indefinite", calcMode:"linear" });
     if (Math.random() < .5){ mo.setAttribute("keyPoints", "1;0"); mo.setAttribute("keyTimes", "0;1"); }
     var mp = el("mpath", {});
@@ -464,31 +461,23 @@ if (!reduce){
 }
 
 /* ---------- nodes ---------- */
-var holders = [];     /* {g, r, a} — repositioned each frame, never rotated */
-var groups  = [];
-var wires   = [];
-var closeT  = null;
+var cats = [];
+var closeT = null;
 
 CATEGORIES.forEach(function(cat, i){
   var theta = -90 + i * STEP;
   var n = cat.tools.length;
   var g = el("g", { class:"cat" });
 
-  /* wire from this node out to each of its tools (lives in the rotating mesh) */
+  var state = { g:g, theta:theta, sats:[], wire:null, reaching:false, target:0, pt:[0,0] };
+
+  /* tether from the category out to each of its tools; geometry set per frame */
   if (n > 0){
-    var d = "";
-    for (var j = 0; j < n; j++){
-      var aj = theta - FAN * (n - 1) / 2 + j * FAN;
-      d += " M " + fmt(pts[i]) + " L " + fmt(pol(R_SAT - 16, aj));
-    }
-    var w = el("path", { class:"wire", d:d.trim(), pathLength:"1" });
-    mesh.appendChild(w);
-    wires[i] = w;
+    state.wire = el("path", { class:"wire", d:"" });
+    tethers.appendChild(state.wire);
   }
 
-  /* the tools */
   cat.tools.forEach(function(tool, j){
-    var aj = theta - FAN * (n - 1) / 2 + j * FAN;
     var wrap = el(tool.url ? "a" : "g", { class:"satwrap" + (tool.url ? "" : " locked") });
     if (tool.url){
       wrap.setAttributeNS(XL, "xlink:href", tool.url);
@@ -498,37 +487,49 @@ CATEGORIES.forEach(function(cat, i){
       wrap.setAttribute("aria-label", tool.name);
     }
     var hold = el("g", {});
-    var sat = el("g", { class:"sat" });
-    sat.style.transitionDelay = (120 + j * 70) + "ms";
-    bead(sat, 10, !tool.url);
-    sat.appendChild(label("sat-lbl", 30, tool.name + (tool.gated ? "   ○" : "")));
-    sat.appendChild(el("circle", { class:"hit", cx:0, cy:0, r:42 }));
-    hold.appendChild(sat);
+    var sg = el("g", { class:"sat" });
+    var glow = el("circle", { class:"glow", cx:0, cy:0, r:MINI_R * 3.2,
+      fill:"url(#halo)", opacity:tool.url ? 1 : .4 });
+    var bd = el("circle", { class:"bead" + (tool.url ? "" : " hollow"), cx:0, cy:0, r:MINI_R });
+    sg.appendChild(glow); sg.appendChild(bd);
+    sg.appendChild(label("sat-lbl", null, tool.name + (tool.gated ? "   ○" : "")));
+    sg.appendChild(el("circle", { class:"hit", cx:0, cy:0, r:40 }));
+    hold.appendChild(sg);
     wrap.appendChild(hold);
     g.appendChild(wrap);
-    holders.push({ g:hold, r:R_SAT, a:aj });
 
-    /* hovering any one tool lifts every tool in the set */
-    wrap.addEventListener("pointerenter", function(){ g.classList.add("reaching"); });
-    wrap.addEventListener("pointerleave", function(){ g.classList.remove("reaching"); });
-    wrap.addEventListener("focus", function(){ activate(i); g.classList.add("reaching"); });
-    wrap.addEventListener("blur", function(){ g.classList.remove("reaching"); release(); });
+    var s = {
+      hold:hold, bead:bd, glow:glow,
+      miniBase:(360 / n) * j - 90,              /* where it sits in its little orbit */
+      fanA:theta - FAN * (n - 1) / 2 + j * FAN, /* where it lands once pushed out    */
+      t:0, rNow:MINI_R, hovered:false
+    };
+    state.sats.push(s);
+
+    /* hovering any one tool lifts the whole set */
+    wrap.addEventListener("pointerenter", function(){ s.hovered = true; state.reaching = true; g.classList.add("reaching"); });
+    wrap.addEventListener("pointerleave", function(){ s.hovered = false; state.reaching = false; g.classList.remove("reaching"); });
+    wrap.addEventListener("focus", function(){ s.hovered = true; state.reaching = true; g.classList.add("reaching"); activate(i); });
+    wrap.addEventListener("blur", function(){ s.hovered = false; state.reaching = false; g.classList.remove("reaching"); release(); });
   });
 
   /* the category node */
   var chold = el("g", { class:"cat-hold" });
-  chold.appendChild(el("circle", { class:"ringlet", cx:0, cy:0, r:27 }));
-  bead(chold, n ? 12 : 9, !n);
-  chold.appendChild(label("cat-lbl flat", 40, cat.name.toUpperCase()));
-  chold.appendChild(label("cat-num flat", 62, n ? String(n).padStart(2, "0") : "—"));
-  var hit = el("circle", { class:"hit", cx:0, cy:0, r:54, tabindex:"0", role:"button" });
+  chold.appendChild(el("circle", { class:"ringlet", cx:0, cy:0, r:R_MINI - 4 }));
+  chold.appendChild(el("circle", { class:"glow", cx:0, cy:0, r:CAT_R * 3.4, fill:"url(#halo)",
+    opacity:n ? 1 : .45 }));
+  chold.appendChild(el("circle", { class:"bead cat-bead" + (n ? "" : " hollow"), cx:0, cy:0,
+    r:n ? CAT_R : CAT_R - 4 }));
+  chold.appendChild(label("cat-lbl flat", 66, cat.name.toUpperCase()));
+  chold.appendChild(label("cat-num flat", 88, n ? String(n).padStart(2, "0") : "—"));
+  var hit = el("circle", { class:"hit", cx:0, cy:0, r:64, tabindex:"0", role:"button" });
   hit.setAttribute("aria-label", cat.name + ", " + n + (n === 1 ? " tool" : " tools"));
   chold.appendChild(hit);
   g.appendChild(chold);
-  holders.push({ g:chold, r:R_CAT, a:theta });
+  state.chold = chold;
 
   marks.appendChild(g);
-  groups.push(g);
+  cats.push(state);
 
   g.addEventListener("pointerenter", function(){ activate(i); });
   g.addEventListener("pointerleave", release);
@@ -540,35 +541,68 @@ CATEGORIES.forEach(function(cat, i){
   });
 });
 
-/* ---------- the slow turn ---------- */
-var spinA = 0, skyA = 0, held = false, last = null;
+/* ---------- the slow turn, and the push outward ---------- */
+var spinA = 0, skyA = 0, miniA = 0, held = false, last = null;
+
 function frame(now){
   if (last === null) last = now;
-  var dt = (now - last) / 1000; last = now;
-  if (!held && !reduce) spinA = (spinA + dt * 360 / SPIN) % 360;
-  /* the backdrop never freezes — it drifts the other way, a third as fast */
+  var dt = Math.min((now - last) / 1000, .05); last = now;
+  var k = 1 - Math.exp(-dt / .16);            /* smoothing toward each target */
+
   if (!reduce){
+    if (!held) spinA = (spinA + dt * 360 / SPIN) % 360;
+    miniA = (miniA + dt * 360 / MINI_SPIN) % 360;
     skyA = (skyA - dt * 360 / (SPIN * 3)) % 360;
     sky.setAttribute("transform", "rotate(" + skyA.toFixed(3) + ")");
   }
   mesh.setAttribute("transform", "rotate(" + spinA.toFixed(3) + ")");
-  for (var i = 0; i < holders.length; i++){
-    var h = holders[i], p = pol(h.r, h.a + spinA);
-    h.g.setAttribute("transform", "translate(" + p[0].toFixed(2) + "," + p[1].toFixed(2) + ")");
+
+  for (var i = 0; i < cats.length; i++){
+    var c = cats[i];
+    var cp = pol(R_CAT, c.theta + spinA);
+    c.pt = cp;
+    c.chold.setAttribute("transform", "translate(" + cp[0].toFixed(2) + "," + cp[1].toFixed(2) + ")");
+
+    var d = "";
+    for (var j = 0; j < c.sats.length; j++){
+      var s = c.sats[j];
+      s.t += (c.target - s.t) * k;
+      var e = s.t * s.t * (3 - 2 * s.t);       /* smoothstep the flight path */
+
+      var rest = pol(R_MINI, s.miniBase + miniA);
+      var restX = cp[0] + rest[0], restY = cp[1] + rest[1];
+      var out = pol(R_SAT, s.fanA + spinA);
+      var x = restX + (out[0] - restX) * e;
+      var y = restY + (out[1] - restY) * e;
+      s.hold.setAttribute("transform", "translate(" + x.toFixed(2) + "," + y.toFixed(2) + ")");
+
+      var rt = MINI_R + (SAT_R - MINI_R) * e;
+      if (s.hovered) rt = SAT_R * 1.5;
+      else if (c.reaching) rt = SAT_R * 1.18;
+      s.rNow += (rt - s.rNow) * k;
+      s.bead.setAttribute("r", s.rNow.toFixed(2));
+      s.glow.setAttribute("r", (s.rNow * 3.2).toFixed(2));
+
+      d += " M " + cp[0].toFixed(2) + " " + cp[1].toFixed(2) + " L " + x.toFixed(2) + " " + y.toFixed(2);
+    }
+    if (c.wire) c.wire.setAttribute("d", d.trim());
   }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
-/* ---------- hover: hold the mesh still, light one node's wires ---------- */
+/* ---------- hover: hold the ring still, light one node's spoke ---------- */
 function activate(i){
   clearTimeout(closeT);
   held = true;
   map.classList.add("focused");
   stage.classList.add("focused");
-  groups.forEach(function(g, k){ g.classList.toggle("on", k === i); });
-  wires.forEach(function(w, k){ if (w) w.classList.toggle("on", k === i); });
-  spokeEls.forEach(function(s, k){ s.classList.toggle("lit", k === i); });
+  cats.forEach(function(c, kk){
+    c.g.classList.toggle("on", kk === i);
+    c.target = kk === i ? 1 : 0;
+    if (c.wire) c.wire.classList.toggle("on", kk === i);
+  });
+  spokeEls.forEach(function(s, kk){ s.classList.toggle("lit", kk === i); });
 }
 /* grace period, so crossing the gap out to a tool never dismisses it */
 function release(){
@@ -577,8 +611,12 @@ function release(){
     held = false;
     map.classList.remove("focused");
     stage.classList.remove("focused");
-    groups.forEach(function(g){ g.classList.remove("on", "reaching"); });
-    wires.forEach(function(w){ if (w) w.classList.remove("on"); });
+    cats.forEach(function(c){
+      c.g.classList.remove("on", "reaching");
+      c.reaching = false;
+      c.target = 0;
+      if (c.wire) c.wire.classList.remove("on");
+    });
     spokeEls.forEach(function(s){ s.classList.remove("lit"); });
   }, 340);
 }
@@ -712,7 +750,7 @@ document.addEventListener("keydown", function(e){
 function openCore(){
   openPanel({
     name:"MAMF AI",
-    blurb:"Every tool the team has built, on one network. Each node holds its own projects — hover one to draw them out, or use the directory below.",
+    blurb:"Every tool the team has built, on one network. Each node carries its own tools in orbit — hover one to push them out, or use the directory below.",
     tools:CATEGORIES.map(function(c){ return { name:c.name, url:"", note:c.blurb }; })
   });
 }
