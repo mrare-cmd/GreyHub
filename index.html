@@ -200,6 +200,7 @@ a{color:inherit;text-decoration:none}
   font-family:var(--f-mark);font-weight:700;
   font-size:calc(var(--stage) * .0285);letter-spacing:.004em;
   color:var(--ink);line-height:1;
+  transition:opacity .3s ease;
 }
 .swap{
   display:inline-grid;                 /* both glyph pairs share one cell, so the
@@ -240,7 +241,11 @@ a{color:inherit;text-decoration:none}
   84%{opacity:1}
   100%{opacity:0;transform:translateX(130%)}
 }
-.stage.focused .core{opacity:0;transform:translate(-50%,-50%) scale(.84)}
+/* While a category is up the disc dims to a target rather than vanishing.
+   It is the thing you hover to come back, so it has to stay visible, and
+   R_RESET is sized to match it. */
+.stage.focused .core{opacity:.26}
+.stage.focused .core .mark{opacity:0}
 
 /* ---------- background constellation: atmosphere, never a connection ---------- */
 .sky{pointer-events:none;transition:opacity .5s ease}
@@ -466,7 +471,7 @@ var MINI_R    = 7;    /* tool bead, at rest in its little orbit          */
 
 /* --- focus: one category takes the middle, the rest swing to the back --- */
 var R_FOCUS   = 178;  /* how far in the focused category comes           */
-var R_RESET   = 70;   /* hovering inside this, dead centre, lets go       */
+var R_RESET   = 120;  /* hovering inside this, dead centre, lets go       */
 var FOCUS_R   = 40;   /* the focused category's bead                     */
 var BACK_R    = 8.5;  /* every other category, demoted                   */
 var R_BACK    = 448;  /* the arc they swing out to                       */
@@ -1091,6 +1096,9 @@ document.addEventListener("pointerdown", function(e){
   if (dir.open && !dir.contains(e.target)) dir.open = false;
 });
 document.addEventListener("keydown", function(e){
+  if (e.key === "Escape" && focusIdx !== null && !dir.open){
+    clearTimeout(closeT); letGo(); return;
+  }
   if (e.key === "Escape" && dir.open){
     dir.open = false;
     dir.querySelector("summary").focus();
