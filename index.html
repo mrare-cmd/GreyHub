@@ -949,15 +949,16 @@ CATEGORIES.forEach(function(cat){
 })();
 
 /* ================= Greysteel sign-in (Microsoft Entra) =================
-   The OAuth round trip is brokered by the Cloudflare Worker that already
-   fronts the PBS8 database. It holds the client secret, sends you to the
-   Greysteel tenant, and hands back a signed session token in the URL
-   fragment. Same origin and same storage key as PBS8, so signing in to
-   either tool signs you in to both.
+   The OAuth round trip is brokered by a Cloudflare Worker. It holds the
+   client secret, sends you to the Greysteel tenant, and hands back a
+   signed session token in the URL fragment. The Worker fronts the other
+   internal tools too, on the same origin and the same storage key, so one
+   sign-in covers all of them.
 
-   This gates the interface, not the file: the page is served publicly by
-   GitHub Pages, so treat the tool names and links as readable by anyone
-   who views source. The tools themselves keep their own sign-ins.
+   The token is also what unlocks the tool directory: this file ships with
+   an empty CATEGORIES and fetches the real one from the Worker after you
+   are signed in. Nothing about what the team has built is readable from
+   the page source.
    ====================================================================== */
 var AUTH_API = "https://hap-update.mrareshide.workers.dev";
 var TKEY     = "hap_session";
