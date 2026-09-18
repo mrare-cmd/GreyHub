@@ -51,7 +51,7 @@
   --f-mark:"FS Clerkenwell",Georgia,serif;
 
   /* the map is sized so the whole network fits without scrolling */
-  --stage:min(1040px,90vw,calc(100vh - 232px));
+  --stage:min(1040px,90vw,calc(100vh - 196px));
 }
 
 *{box-sizing:border-box}
@@ -137,21 +137,37 @@ a{color:inherit;text-decoration:none}
 .count{font-size:11.5px;letter-spacing:.1em;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
 /* ---------- greeting: sits above the network and stays there ---------- */
-.greeting{position:relative;z-index:3;text-align:center;padding-block:14px 0}
+.greeting{position:relative;z-index:3;text-align:center;padding-block:16px 2px}
 .greeting h1{
   margin:0;
   font-family:var(--f-display);font-weight:500;
-  font-size:clamp(26px,3.5vw,44px);letter-spacing:-.018em;line-height:1.1;
-  text-wrap:balance;
-  /* the one hue on the page, swept across the line */
-  background-image:linear-gradient(100deg,var(--accent) 0%,#FFFFFF 44%,#C8D4E6 100%);
-  -webkit-background-clip:text;background-clip:text;
-  color:var(--ink);-webkit-text-fill-color:transparent;
+  font-size:clamp(26px,3.5vw,44px);letter-spacing:-.018em;line-height:1.15;
+  text-wrap:balance;color:var(--ink);
 }
-.greeting p{
-  margin:13px auto 0;max-width:52ch;
-  font-size:14.5px;line-height:1.55;color:var(--ink-2);
+/* the name is the one warm point in the line: light steel blue, lit from within */
+.g-name{
+  color:var(--accent);
+  text-shadow:
+    0 0 14px rgba(176,196,222,.55),
+    0 0 34px rgba(176,196,222,.34),
+    0 0 72px rgba(176,196,222,.18);
+  animation:namepulse 5.5s ease-in-out infinite;
 }
+@keyframes namepulse{
+  0%,100%{
+    text-shadow:
+      0 0 14px rgba(176,196,222,.5),
+      0 0 34px rgba(176,196,222,.3),
+      0 0 72px rgba(176,196,222,.15);
+  }
+  50%{
+    text-shadow:
+      0 0 18px rgba(176,196,222,.72),
+      0 0 44px rgba(176,196,222,.44),
+      0 0 92px rgba(176,196,222,.24);
+  }
+}
+@media (prefers-reduced-motion:reduce){ .g-name{animation:none} }
 
 /* ---------- map ---------- */
 .mapsec{position:relative;display:flex;flex-direction:column;align-items:center;padding-block:0}
@@ -413,8 +429,7 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
 </header>
 
 <section class="greeting wrap" id="greeting" hidden>
-  <h1 id="greetLine"></h1>
-  <p id="greetSub"></p>
+  <h1><span id="greetHi"></span> <span class="g-name" id="greetName"></span></h1>
 </section>
 
 <section class="mapsec wrap" aria-label="Tool network">
@@ -1020,6 +1035,9 @@ function timeGreeting(){
 }
 
 function firstNameOf(a){
+  /* the worker sends given_name when Entra has one; it beats any parsing */
+  var g = ((a && a.given) || "").trim();
+  if (g) return g.split(/\s+/)[0];
   var n = ((a && a.name) || "").trim();
   if (n){
     if (n.indexOf(",") > -1){
@@ -1046,11 +1064,8 @@ document.getElementById("signOut").addEventListener("click", signOut);
       showGate(returned ? "Sign-in did not complete. Please try again." : "");
       return;
     }
-    document.getElementById("greetLine").textContent =
-      timeGreeting() + ", " + firstNameOf(AUTH) + ".";
-    document.getElementById("greetSub").textContent =
-      "Your GreyHub workspace is ready \u2014 " + (live + gated) +
-      " tools across " + CATEGORIES.length + " categories. Hover a node to see what is inside.";
+    document.getElementById("greetHi").textContent = timeGreeting() + ",";
+    document.getElementById("greetName").textContent = firstNameOf(AUTH) + ".";
     document.getElementById("greeting").hidden = false;
     document.getElementById("who").hidden = false;
     hideGate();
