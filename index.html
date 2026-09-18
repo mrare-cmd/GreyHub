@@ -51,7 +51,7 @@
   --f-mark:"FS Clerkenwell",Georgia,serif;
 
   /* the map is sized so the whole network fits without scrolling */
-  --stage:min(1040px,90vw,calc(100vh - 126px));
+  --stage:min(1040px,90vw,calc(100vh - 232px));
 }
 
 *{box-sizing:border-box}
@@ -135,6 +135,23 @@ a{color:inherit;text-decoration:none}
 }
 .mast-right{display:flex;align-items:center;gap:20px}
 .count{font-size:11.5px;letter-spacing:.1em;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* ---------- greeting: sits above the network and stays there ---------- */
+.greeting{position:relative;z-index:3;text-align:center;padding-block:14px 0}
+.greeting h1{
+  margin:0;
+  font-family:var(--f-display);font-weight:500;
+  font-size:clamp(26px,3.5vw,44px);letter-spacing:-.018em;line-height:1.1;
+  text-wrap:balance;
+  /* the one hue on the page, swept across the line */
+  background-image:linear-gradient(100deg,var(--accent) 0%,#FFFFFF 44%,#C8D4E6 100%);
+  -webkit-background-clip:text;background-clip:text;
+  color:var(--ink);-webkit-text-fill-color:transparent;
+}
+.greeting p{
+  margin:13px auto 0;max-width:52ch;
+  font-size:14.5px;line-height:1.55;color:var(--ink-2);
+}
 
 /* ---------- map ---------- */
 .mapsec{position:relative;display:flex;flex-direction:column;align-items:center;padding-block:0}
@@ -382,7 +399,6 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
   <div class="wordmark">MAMF AI</div>
   <div class="mast-right">
     <div class="who" id="who" hidden>
-      <span><span class="hi">Welcome,</span> <b id="whoName"></b></span>
       <button class="signout" id="signOut">Sign out</button>
     </div>
     <details class="dir" id="dir">
@@ -395,6 +411,11 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
     </details>
   </div>
 </header>
+
+<section class="greeting wrap" id="greeting" hidden>
+  <h1 id="greetLine"></h1>
+  <p id="greetSub"></p>
+</section>
 
 <section class="mapsec wrap" aria-label="Tool network">
   <div class="stage" id="stage">
@@ -991,6 +1012,13 @@ function checkSession(){
 
 /* "Rareshide, Mason" and "Mason Rareshide" both give "Mason"; falls back to
    the mailbox name so nobody is greeted as undefined */
+function timeGreeting(){
+  var h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 function firstNameOf(a){
   var n = ((a && a.name) || "").trim();
   if (n){
@@ -1018,7 +1046,12 @@ document.getElementById("signOut").addEventListener("click", signOut);
       showGate(returned ? "Sign-in did not complete. Please try again." : "");
       return;
     }
-    document.getElementById("whoName").textContent = firstNameOf(AUTH);
+    document.getElementById("greetLine").textContent =
+      timeGreeting() + ", " + firstNameOf(AUTH) + ".";
+    document.getElementById("greetSub").textContent =
+      "Your GreyHub workspace is ready \u2014 " + (live + gated) +
+      " tools across " + CATEGORIES.length + " categories. Hover a node to see what is inside.";
+    document.getElementById("greeting").hidden = false;
     document.getElementById("who").hidden = false;
     hideGate();
   });
