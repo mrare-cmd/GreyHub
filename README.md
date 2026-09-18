@@ -33,6 +33,24 @@ active. It exists to give the field depth, not to imply connections.
 
 Light steel blue (`#B0C4DE`) is the only hue on the page — nothing is colour-coded by category.
 
+## Sign-in
+
+The page is gated behind Greysteel Microsoft (Entra) sign-in, brokered by the same Cloudflare Worker that
+fronts the PBS8 database (`hap-update.mrareshide.workers.dev`). The worker holds the client secret, sends
+the user to the Greysteel tenant, and returns a signed session token in the URL fragment. GreyHub and PBS8
+share an origin and a storage key (`hap_session`), so signing in to either signs you in to both.
+
+Once in, the masthead reads "Welcome, <first name>", taken from the Entra display name (`Rareshide, Mason`
+and `Mason Rareshide` both resolve to `Mason`), falling back to the mailbox name.
+
+**This gates the interface, not the file.** GitHub Pages serves `index.html` publicly, so the tool names and
+URLs are readable by anyone who views source. The linked tools keep their own sign-ins. To make the link
+list itself private it would have to be served from the worker after authentication rather than baked into
+the page.
+
+If the site moves to a custom domain, the worker needs that origin added to its CORS allowlist and its
+accepted return URLs — today it only answers `https://mrare-cmd.github.io`.
+
 ## Editing
 
 Everything lives in the `CATEGORIES` block near the top of the `<script>` in `index.html`.

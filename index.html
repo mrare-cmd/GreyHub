@@ -82,6 +82,48 @@ a{color:inherit;text-decoration:none}
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 24px 60px rgba(0,0,0,.45);
 }
 
+/* ---------- sign-in gate ---------- */
+#authGate{
+  position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;
+  background:
+    radial-gradient(760px 620px at 50% 42%, #0E1118 0%, rgba(14,17,24,0) 74%),
+    var(--bg);
+}
+#authGate.hidden{display:none}
+.ag-card{width:min(430px,100%);padding:40px 36px 32px;text-align:center}
+.ag-brand{
+  font-family:var(--f-mark);font-weight:700;
+  font-size:26px;letter-spacing:.004em;color:var(--ink);line-height:1;
+}
+.ag-title{
+  margin-top:14px;font-family:var(--f-display);font-weight:600;font-size:11px;
+  letter-spacing:.3em;text-transform:uppercase;color:var(--ink-3);
+}
+.ag-sub{margin:22px 0 24px;font-size:14px;line-height:1.6;color:var(--ink-2)}
+.ag-btn{
+  display:inline-flex;align-items:center;gap:11px;
+  padding:12px 20px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--glass-line);background:rgba(255,255,255,.055);
+  -webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);
+  font-family:var(--f-display);font-weight:600;font-size:11.5px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink);
+  transition:background .2s ease,border-color .2s ease,transform .2s ease;
+}
+.ag-btn:hover{background:rgba(176,196,222,.12);border-color:rgba(176,196,222,.4);transform:translateY(-1px)}
+.ag-btn:disabled{opacity:.5;cursor:progress;transform:none}
+.ag-msg{margin-top:18px;min-height:1.2em;font-size:12.5px;letter-spacing:.02em;color:#C98A8A}
+.ag-msg.ok{color:var(--ink-3)}
+
+/* ---------- who is signed in ---------- */
+.who{display:flex;align-items:baseline;gap:13px;font-size:12.5px;color:var(--ink-2)}
+.who b{font-weight:500;color:var(--ink)}
+.signout{
+  background:none;border:0;padding:0;cursor:pointer;font-family:var(--f-body);
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
+  transition:color .2s ease;
+}
+.signout:hover{color:var(--accent)}
+
 /* ---------- masthead ---------- */
 .masthead{
   position:relative;z-index:30;display:flex;align-items:center;
@@ -308,7 +350,7 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
 
 @media (max-width:820px){
   .wrap{padding-inline:18px}
-  .count{display:none}
+  .who .hi{display:none}
   .dir-panel{padding:18px 18px 16px}
   .row{grid-template-columns:1fr auto;gap:8px 16px}
   .row .cat-c{grid-column:1/-1;margin-bottom:2px}
@@ -318,10 +360,31 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
 }
 </style>
 
+<div id="authGate">
+  <div class="ag-card glass">
+    <div class="ag-brand">Greysteel</div>
+    <div class="ag-title">MAMF GreyHub</div>
+    <p class="ag-sub">Sign in with your Greysteel account to continue.</p>
+    <button id="agBtn" class="ag-btn" hidden>
+      <svg width="15" height="15" viewBox="0 0 23 23" aria-hidden="true">
+        <rect x="1" y="1" width="10" height="10" fill="#f25022"/>
+        <rect x="12" y="1" width="10" height="10" fill="#7fba00"/>
+        <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
+        <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
+      </svg>
+      Sign in with Microsoft
+    </button>
+    <div class="ag-msg ok" id="agMsg">Checking your session…</div>
+  </div>
+</div>
+
 <header class="masthead wrap">
   <div class="wordmark">MAMF AI</div>
   <div class="mast-right">
-    <div class="count" id="count"></div>
+    <div class="who" id="who" hidden>
+      <span><span class="hi">Welcome,</span> <b id="whoName"></b></span>
+      <button class="signout" id="signOut">Sign out</button>
+    </div>
     <details class="dir" id="dir">
       <summary>Directory <span class="chev" aria-hidden="true"></span></summary>
       <div class="dir-panel glass">
@@ -814,7 +877,6 @@ CATEGORIES.forEach(function(c){
   if (!c.tools.length) voids++;
   c.tools.forEach(function(t){ if (t.url) { if (t.gated) gated++; else live++; } });
 });
-document.getElementById("count").textContent = (live + gated) + " tools / " + CATEGORIES.length + " categories";
 document.getElementById("dirCount").textContent =
   (live + gated) + " of " + total + " linked · " + voids + " categories empty";
 document.getElementById("foot").textContent = "Edit the CATEGORIES block in index.html to add a tool.";
@@ -864,6 +926,102 @@ CATEGORIES.forEach(function(cat){
     setTimeout(function(){ ai = !ai; core.classList.toggle("ai", ai); }, 440);
     setTimeout(function(){ core.classList.remove("sweep"); }, 1250);
   }, 2300);
+})();
+
+/* ================= Greysteel sign-in (Microsoft Entra) =================
+   The OAuth round trip is brokered by the Cloudflare Worker that already
+   fronts the PBS8 database. It holds the client secret, sends you to the
+   Greysteel tenant, and hands back a signed session token in the URL
+   fragment. Same origin and same storage key as PBS8, so signing in to
+   either tool signs you in to both.
+
+   This gates the interface, not the file: the page is served publicly by
+   GitHub Pages, so treat the tool names and links as readable by anyone
+   who views source. The tools themselves keep their own sign-ins.
+   ====================================================================== */
+var AUTH_API = "https://hap-update.mrareshide.workers.dev";
+var TKEY     = "hap_session";
+var AUTH     = null;
+
+function tokenGet(){ try{ return localStorage.getItem(TKEY); }catch(e){ return null; } }
+function tokenSet(t){ try{ t ? localStorage.setItem(TKEY, t) : localStorage.removeItem(TKEY); }catch(e){} }
+
+function agMsg(m, ok){
+  var el = document.getElementById("agMsg");
+  if (el){ el.textContent = m || ""; el.className = "ag-msg" + (ok ? " ok" : ""); }
+}
+function showGate(msg){
+  document.getElementById("authGate").classList.remove("hidden");
+  document.getElementById("agBtn").hidden = false;
+  agMsg(msg || "", !msg);
+}
+function hideGate(){ document.getElementById("authGate").classList.add("hidden"); }
+
+function signIn(){
+  var btn = document.getElementById("agBtn");
+  if (btn) btn.disabled = true;
+  agMsg("Redirecting to Microsoft…", true);
+  location.href = AUTH_API + "/login?return=" +
+    encodeURIComponent(location.origin + location.pathname);
+}
+function signOut(){
+  tokenSet(null); AUTH = null;
+  location.href = location.origin + location.pathname;
+}
+
+/* the worker hands the token back as #auth=... — take it and tidy the URL */
+function captureTokenFromHash(){
+  var m = /[#&]auth=([^&]+)/.exec(location.hash || "");
+  if (!m) return false;
+  tokenSet(decodeURIComponent(m[1]));
+  try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}
+  return true;
+}
+
+function checkSession(){
+  if (!tokenGet()) return Promise.resolve(null);
+  return fetch(AUTH_API + "/me", {
+    headers:{ Authorization:"Bearer " + tokenGet() }, cache:"no-store"
+  }).then(function(r){
+    if (!r.ok){ tokenSet(null); return null; }
+    return r.json();
+  }).then(function(j){ return (j && j.ok) ? j : null; })
+    .catch(function(){ return null; });
+}
+
+/* "Rareshide, Mason" and "Mason Rareshide" both give "Mason"; falls back to
+   the mailbox name so nobody is greeted as undefined */
+function firstNameOf(a){
+  var n = ((a && a.name) || "").trim();
+  if (n){
+    if (n.indexOf(",") > -1){
+      var after = n.split(",")[1];
+      if (after && after.trim()) return after.trim().split(/\s+/)[0];
+    }
+    return n.split(/\s+/)[0];
+  }
+  var local = (((a && a.email) || "").split("@")[0] || "").replace(/[._\-]+/g, " ").trim();
+  if (!local) return "there";
+  var w = local.split(/\s+/)[0];
+  return w.charAt(0).toUpperCase() + w.slice(1);
+}
+
+document.getElementById("agBtn").addEventListener("click", signIn);
+document.getElementById("signOut").addEventListener("click", signOut);
+
+(function boot(){
+  var returned = captureTokenFromHash();
+  if (returned) agMsg("Signing you in\u2026", true);
+  checkSession().then(function(auth){
+    AUTH = auth;
+    if (!AUTH){
+      showGate(returned ? "Sign-in did not complete. Please try again." : "");
+      return;
+    }
+    document.getElementById("whoName").textContent = firstNameOf(AUTH);
+    document.getElementById("who").hidden = false;
+    hideGate();
+  });
 })();
 
 /* ---------- directory dropdown: close on outside click and on Escape ---------- */
