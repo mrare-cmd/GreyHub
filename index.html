@@ -445,38 +445,17 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
 
 <script>
 /* ==========================================================
-   CONFIG — the only block to edit.
-     url:""      renders as "link pending"
-     gated:true  marks it as needing a sign-in
-   Order = clockwise from the top of the ring.
+   The tool directory is NOT in this file.
+
+   This page is served publicly by GitHub Pages, so anything written here
+   is readable by anyone. The directory lives in the Cloudflare Worker
+   instead and is fetched from /greyhub once you have signed in, which is
+   what makes the sign-in a real gate rather than a curtain.
+
+   To add or change a tool, edit GREYHUB_CATEGORIES in the Worker and hit
+   Deploy. Nothing here needs to change.
    ========================================================== */
-var CATEGORIES = [
-  { name:"Prospecting",
-    blurb:"Finding and ranking the next deal before anyone else does.",
-    tools:[
-      { name:"PBS8 Database", url:"https://mrare-cmd.github.io/HAP-Database/",
-        note:"Project-based Section 8 contracts, rents and renewal options." },
-      { name:"TOPA Dashboard", url:"https://mrare-cmd.github.io/mrare/",
-        note:"DC TOPA and DOPA notices and offers of sale." },
-      { name:"Priority Dashboard", url:"https://mrare-cmd.github.io/greysteel-hampton-roads/",
-        note:"Ranked prospecting targets and outreach status." }
-    ]},
-  { name:"Underwriting",
-    blurb:"Models, comps and assumptions that feed a deal's numbers.",
-    tools:[
-      { name:"OpEx Dashboard", url:"https://gs-expense-comps.pages.dev/", gated:true,
-        note:"Operating expense comparables by market and asset type." }
-    ]},
-  { name:"Client Tools",
-    blurb:"Things we put directly in a client's hands.",
-    tools:[
-      { name:"Inspection Assistant", url:"https://mrare-cmd.github.io/walkthrough/app.html",
-        note:"Guided property walkthrough capture and write-up." }
-    ]},
-  { name:"Comparables",   blurb:"Sales, rent and expense comp sets.", tools:[] },
-  { name:"Production",    blurb:"Turning underwriting into client-ready deliverables.", tools:[] },
-  { name:"Miscellaneous", blurb:"Everything that does not belong to one desk yet.", tools:[] }
-];
+var CATEGORIES = [];
 
 /* geometry, in viewBox units (the box is 1040 across, centred on 0,0) */
 var R_CAT     = 318;  /* the circumference every category sits on        */
@@ -592,9 +571,14 @@ map.appendChild(mesh);
 map.appendChild(tethers);
 map.appendChild(marks);
 
+/* Everything below is built from CATEGORIES, which arrives from the Worker
+   after sign-in, so the build waits in a function instead of running now. */
+var STEP = 0, spokeEls = [], cats = [], closeT = null;
+
+function buildMap(){
 /* ---------- one spoke per category, core outward; nothing cross-links ---------- */
-var STEP = 360 / CATEGORIES.length;
-var spokeEls = CATEGORIES.map(function(c, i){
+STEP = 360 / CATEGORIES.length;
+spokeEls = CATEGORIES.map(function(c, i){
   var theta = -90 + i * STEP;
   var p = el("path", { class:"spoke", id:"sp" + i,
     d:"M " + fmt(pol(R_CORE_IN, theta)) + " L " + fmt(pol(R_CAT - 26, theta)) });
@@ -623,9 +607,6 @@ if (!reduce){
 }
 
 /* ---------- nodes ---------- */
-var cats = [];
-var closeT = null;
-
 CATEGORIES.forEach(function(cat, i){
   var theta = -90 + i * STEP;
   var n = cat.tools.length;
@@ -717,6 +698,7 @@ CATEGORIES.forEach(function(cat, i){
     if (e.key === "Enter" || e.key === " "){ e.preventDefault(); activate(i); flash(state); }
   });
 });
+}  /* end buildMap */
 
 /* the middle of the map is the way out of focus. It goes in last so it sits on
    top of every catchment; the tools never come within 180 units of centre, so
@@ -906,7 +888,8 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitLabels)
 else window.addEventListener("load", fitLabels);
 setTimeout(fitLabels, 1400);
 
-/* ---------- counts ---------- */
+/* ---------- counts and directory ---------- */
+function buildDirectory(){
 var total = 0, live = 0, gated = 0, voids = 0;
 CATEGORIES.forEach(function(c){
   total += c.tools.length;
@@ -915,7 +898,7 @@ CATEGORIES.forEach(function(c){
 });
 document.getElementById("dirCount").textContent =
   (live + gated) + " of " + total + " linked · " + voids + " categories empty";
-document.getElementById("foot").textContent = "Edit the CATEGORIES block in index.html to add a tool.";
+document.getElementById("foot").textContent = "Edit GREYHUB_CATEGORIES in the Cloudflare Worker to add a tool.";
 
 /* ---------- directory ---------- */
 var rows = document.getElementById("rows");
@@ -949,6 +932,7 @@ CATEGORIES.forEach(function(cat){
     rows.appendChild(row);
   });
 });
+}  /* end buildDirectory */
 
 /* ---------- the wordmark turns over: Greysteel <-> GrAIsteel ----------
    The light band starts first and the glyphs change as it passes the middle, so
@@ -1052,6 +1036,18 @@ function firstNameOf(a){
   return w.charAt(0).toUpperCase() + w.slice(1);
 }
 
+/* the directory itself is behind the same token as everything else */
+function loadDirectory(){
+  return fetch(AUTH_API + "/greyhub", {
+    headers:{ Authorization:"Bearer " + tokenGet() }, cache:"no-store"
+  }).then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      return (j && j.ok && Array.isArray(j.categories) && j.categories.length)
+        ? j.categories : null;
+    })
+    .catch(function(){ return null; });
+}
+
 document.getElementById("agBtn").addEventListener("click", signIn);
 document.getElementById("signOut").addEventListener("click", signOut);
 
@@ -1064,11 +1060,27 @@ document.getElementById("signOut").addEventListener("click", signOut);
       showGate(returned ? "Sign-in did not complete. Please try again." : "");
       return;
     }
-    document.getElementById("greetHi").textContent = timeGreeting() + ",";
-    document.getElementById("greetName").textContent = firstNameOf(AUTH) + ".";
-    document.getElementById("greeting").hidden = false;
-    document.getElementById("who").hidden = false;
-    hideGate();
+    agMsg("Loading your tools\u2026", true);
+    loadDirectory().then(function(list){
+      if (!list){
+        showGate("Signed in, but your tools could not be loaded. Please try again.");
+        return;
+      }
+      CATEGORIES = list;
+      buildMap();
+      buildDirectory();
+      /* labels are measured after the glyphs exist, and again once the
+         webfont has settled, since the plates are sized to the text */
+      fitLabels();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitLabels);
+      setTimeout(fitLabels, 400);
+
+      document.getElementById("greetHi").textContent = timeGreeting() + ",";
+      document.getElementById("greetName").textContent = firstNameOf(AUTH) + ".";
+      document.getElementById("greeting").hidden = false;
+      document.getElementById("who").hidden = false;
+      hideGate();
+    });
   });
 })();
 
