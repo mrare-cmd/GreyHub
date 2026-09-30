@@ -1205,7 +1205,8 @@ document.addEventListener("keydown", function(e){
 
 /* which site an action belongs to. Anything logged before the sites were
    namespaced still has to land somewhere sensible, hence the legacy list. */
-var LEGACY_PBS8 = ["dashboard","map_draw","rent_roll","rent_tiers","search_apply","export_page"];
+var LEGACY_PBS8 = ["dashboard","map_draw","rent_roll","rent_tiers","search_apply",
+                   "export_page","search_save","update"];
 function siteOf(action){
   if (action.indexOf("pbs8:") === 0) return "pbs8";
   if (action.indexOf("loanid:") === 0) return "loanid";
