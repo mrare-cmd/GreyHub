@@ -133,7 +133,7 @@ a{color:inherit;text-decoration:none}
 .anx tr:hover td{background:rgba(176,196,222,.045)}
 .anx td.who{color:var(--ink);font-weight:500}
 .anx td.num{text-align:right;font-variant-numeric:tabular-nums}
-.anx td.num.zero{color:var(--ink-3);opacity:.45}
+.anx td.num.zero{color:#363B43}
 .anx td.when{color:var(--ink-3);font-size:12px;white-space:nowrap}
 .anx td.when .what{display:block;margin-top:3px;color:var(--ink-2);font-size:11.5px}
 .anx-empty{padding:26px 10px;color:var(--ink-3);font-size:13px}
@@ -1361,7 +1361,7 @@ function renderAnalytics(j){
          '<td class="num' + (p.per.loanid ? "" : " zero") + '">' + p.per.loanid + '</td>' +
          '<td class="num' + (p.per.greyhub ? "" : " zero") + '">' + p.per.greyhub + '</td>' +
          '<td class="when">' + esc(shortDate(p.last)) +
-           (p.lastAction ? '<span class="what">' + esc(prettyAction(p.lastAction)) + '</span>' : '') +
+           '<span class="what">' + (p.lastAction ? esc(prettyAction(p.lastAction)) : "\u00A0") + '</span>' +
          '</td></tr>';
   });
   h += '</tbody></table>';
