@@ -135,6 +135,7 @@ a{color:inherit;text-decoration:none}
 .anx td.num{text-align:right;font-variant-numeric:tabular-nums}
 .anx td.num.zero{color:var(--ink-3);opacity:.45}
 .anx td.when{color:var(--ink-3);font-size:12px;white-space:nowrap}
+.anx td.when .what{display:block;margin-top:3px;color:var(--ink-2);font-size:11.5px}
 .anx-empty{padding:26px 10px;color:var(--ink-3);font-size:13px}
 .anx-note{margin:18px 0 0;font-size:11.5px;line-height:1.6;color:var(--ink-3)}
 
@@ -647,6 +648,9 @@ map.appendChild(marks);
 /* Everything below is built from CATEGORIES, which arrives from the Worker
    after sign-in, so the build waits in a function instead of running now. */
 var STEP = 0, spokeEls = [], cats = [], closeT = null;
+/* slug -> the tool's real name, so analytics can print "PBS8 Database"
+   instead of title-casing "pbs8-database" into "Pbs8 Database" */
+var TOOL_NAMES = {};
 
 function buildMap(){
 /* ---------- one spoke per category, core outward; nothing cross-links ---------- */
@@ -702,6 +706,7 @@ CATEGORIES.forEach(function(cat, i){
   }
 
   cat.tools.forEach(function(tool, j){
+    TOOL_NAMES[slug(tool.name)] = tool.name;
     var wrap = el(tool.url ? "a" : "g", { class:"satwrap" + (tool.url ? "" : " locked") });
     if (tool.url){
       wrap.setAttributeNS(XL, "xlink:href", tool.url);
@@ -1216,6 +1221,29 @@ function siteOf(action){
   return null;                       /* bare "signin" is shared across all three */
 }
 
+var SITE_LABEL = { pbs8:"PBS8", loanid:"LoanID", greyhub:"GreyHub" };
+
+function titleish(t){
+  return String(t).split("-").map(function(w){
+    return w ? w.charAt(0).toUpperCase() + w.slice(1) : w;
+  }).join(" ");
+}
+
+/* turn a raw action name into something readable in the Last seen column */
+function prettyAction(a){
+  if (!a) return "";
+  if (a.indexOf("greyhub:click:") === 0)
+    return "GreyHub \u2192 " + (TOOL_NAMES[a.slice(14)] || titleish(a.slice(14)));
+  var i = a.indexOf(":");
+  if (i > 0 && SITE_LABEL[a.slice(0, i)])
+    return SITE_LABEL[a.slice(0, i)] + " \u00B7 " +
+           a.slice(i + 1).split(":").join(" ").split("_").join(" ");
+  if (a === "signin") return "Sign-in";
+  var site = siteOf(a);
+  if (site) return SITE_LABEL[site] + " \u00B7 " + a.split("_").join(" ");
+  return a;
+}
+
 function esc(x){
   return String(x == null ? "" : x).replace(/[&<>"]/g, function(c){
     return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c];
@@ -1306,7 +1334,7 @@ function renderAnalytics(j){
         t.users[r.email] = 1;
       }
     });
-    people.push({ email:r.email, last:r.last, per:per,
+    people.push({ email:r.email, last:r.last, lastAction:r.lastAction, per:per,
                   total:per.pbs8 + per.loanid + per.greyhub });
   });
   people.sort(function(a, b){ return (b.last || "").localeCompare(a.last || ""); });
@@ -1332,7 +1360,9 @@ function renderAnalytics(j){
          '<td class="num' + (p.per.pbs8 ? "" : " zero") + '">' + p.per.pbs8 + '</td>' +
          '<td class="num' + (p.per.loanid ? "" : " zero") + '">' + p.per.loanid + '</td>' +
          '<td class="num' + (p.per.greyhub ? "" : " zero") + '">' + p.per.greyhub + '</td>' +
-         '<td class="when">' + esc(shortDate(p.last)) + '</td></tr>';
+         '<td class="when">' + esc(shortDate(p.last)) +
+           (p.lastAction ? '<span class="what">' + esc(prettyAction(p.lastAction)) + '</span>' : '') +
+         '</td></tr>';
   });
   h += '</tbody></table>';
 
@@ -1344,7 +1374,7 @@ function renderAnalytics(j){
     h += '<tr><td colspan="3" class="anx-empty">No link clicks recorded yet.</td></tr>';
   }
   toolKeys.forEach(function(k){
-    h += '<tr><td class="who">' + esc(k) + '</td>' +
+    h += '<tr><td class="who">' + esc(TOOL_NAMES[k] || titleish(k)) + '</td>' +
          '<td class="num">' + tools[k].n + '</td>' +
          '<td class="num">' + Object.keys(tools[k].users).length + '</td></tr>';
   });
@@ -1353,7 +1383,9 @@ function renderAnalytics(j){
   h += '<p class="anx-note">Counts are per person per day and the Worker collapses ' +
        'the same action within 60 seconds, so these are activity levels rather than ' +
        'exact click totals. Bare <code>signin</code> events are shared by all three ' +
-       'sites and are left out of the per-site columns.</p>';
+       'sites and are left out of the per-site columns. What someone was last doing ' +
+       'is only recorded from the Worker deploy onward, so older rows show a time ' +
+       'with nothing under it.</p>';
 
   document.getElementById("anxBody").innerHTML = h;
   document.getElementById("anxSub").textContent =
