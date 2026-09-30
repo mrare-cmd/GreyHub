@@ -82,6 +82,62 @@ a{color:inherit;text-decoration:none}
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 24px 60px rgba(0,0,0,.45);
 }
 
+/* ---------- analytics panel (konami) ---------- */
+#anx{
+  position:fixed;inset:0;z-index:120;display:none;
+  background:rgba(4,5,8,.82);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  padding:clamp(16px,4vh,48px) clamp(16px,4vw,48px);
+  overflow-y:auto;
+}
+#anx.open{display:block}
+.anx-card{max-width:1080px;margin:0 auto;padding:30px 32px 34px}
+.anx-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+  padding-bottom:18px;border-bottom:1px solid var(--glass-line)}
+.anx-head h2{margin:0;font-family:var(--f-display);font-weight:600;font-size:12px;
+  letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2)}
+.anx-head .sub{font-size:11.5px;letter-spacing:.08em;color:var(--ink-3);
+  font-variant-numeric:tabular-nums}
+.anx-range{margin-left:auto;display:flex;gap:6px}
+.anx-range button{
+  background:none;border:1px solid var(--glass-line);border-radius:999px;
+  padding:5px 12px;cursor:pointer;font-family:var(--f-body);
+  font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+  transition:color .2s ease,border-color .2s ease,background .2s ease;
+}
+.anx-range button:hover{color:var(--ink);border-color:rgba(176,196,222,.4)}
+.anx-range button.on{color:var(--ink);background:rgba(176,196,222,.12);
+  border-color:rgba(176,196,222,.45)}
+.anx-close{background:none;border:0;cursor:pointer;font-family:var(--f-body);
+  font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3)}
+.anx-close:hover{color:var(--accent)}
+
+.anx-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:14px;padding:22px 0 8px}
+.anx-tile{padding:16px 18px;border:1px solid var(--glass-line);border-radius:14px;
+  background:rgba(255,255,255,.03)}
+.anx-tile .k{font-family:var(--f-display);font-weight:600;font-size:9.5px;
+  letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3)}
+.anx-tile .v{font-family:var(--f-display);font-weight:600;font-size:26px;
+  color:var(--ink);font-variant-numeric:tabular-nums;margin-top:8px;line-height:1}
+.anx-tile .n{font-size:11.5px;color:var(--ink-3);margin-top:5px}
+
+.anx h3{font-family:var(--f-display);font-weight:600;font-size:10px;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--ink-3);margin:28px 0 0;
+  padding-bottom:11px;border-bottom:1px solid var(--glass-line)}
+.anx table{width:100%;border-collapse:collapse;font-size:13.5px}
+.anx th{text-align:left;font-family:var(--f-display);font-weight:500;font-size:9.5px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+  padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.055)}
+.anx td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.045);color:var(--ink-2)}
+.anx tr:hover td{background:rgba(176,196,222,.045)}
+.anx td.who{color:var(--ink);font-weight:500}
+.anx td.num{text-align:right;font-variant-numeric:tabular-nums}
+.anx td.num.zero{color:var(--ink-3);opacity:.45}
+.anx td.when{color:var(--ink-3);font-size:12px;white-space:nowrap}
+.anx-empty{padding:26px 10px;color:var(--ink-3);font-size:13px}
+.anx-note{margin:18px 0 0;font-size:11.5px;line-height:1.6;color:var(--ink-3)}
+
 /* ---------- sign-in gate ---------- */
 #authGate{
   position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;
@@ -398,6 +454,18 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
 }
 </style>
 
+<div id="anx" class="anx" aria-hidden="true">
+  <div class="anx-card glass">
+    <div class="anx-head">
+      <h2>Analytics</h2>
+      <span class="sub" id="anxSub"></span>
+      <span class="anx-range" id="anxRange"></span>
+      <button class="anx-close" id="anxClose">Close</button>
+    </div>
+    <div id="anxBody"></div>
+  </div>
+</div>
+
 <div id="authGate">
   <div class="ag-card glass">
     <div class="ag-brand">Greysteel</div>
@@ -641,6 +709,10 @@ CATEGORIES.forEach(function(cat, i){
       wrap.setAttribute("target", "_blank");
       wrap.setAttribute("rel", "noopener");
       wrap.setAttribute("aria-label", tool.name);
+      /* who opened which tool - the whole point of the hub */
+      wrap.addEventListener("click", function(){
+        track("greyhub:click:" + slug(tool.name));
+      });
     }
     var hold = el("g", {});
     var sg = el("g", { class:"sat" });
@@ -1054,6 +1126,24 @@ function loadDirectory(){
     .catch(function(){ return null; });
 }
 
+/* fire-and-forget usage event; the Worker collapses repeats within a minute */
+function track(name){
+  try{
+    var t = tokenGet();
+    if (!t) return;
+    fetch(AUTH_API + "/event", {
+      method:"POST",
+      headers:{ Authorization:"Bearer " + t, "Content-Type":"application/json" },
+      body:JSON.stringify({ name:name }),
+      keepalive:true
+    }).catch(function(){});
+  }catch(e){}
+}
+function slug(s2){
+  return String(s2 || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "").slice(0, 32);
+}
+
 document.getElementById("agBtn").addEventListener("click", signIn);
 document.getElementById("signOut").addEventListener("click", signOut);
 
@@ -1090,12 +1180,194 @@ document.getElementById("signOut").addEventListener("click", signOut);
   });
 })();
 
+/* ================= analytics, behind the konami code =================
+   Up Up Down Down Left Right Left Right B A Enter. The sequence only opens
+   the panel; the Worker decides whether you may see anything, and answers
+   403 to anyone not in ADMIN_EMAILS.
+   ===================================================================== */
+var ANX_SEQ = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown",
+               "ArrowLeft","ArrowRight","ArrowLeft","ArrowRight",
+               "KeyB","KeyA","Enter"];
+var anxBuf = [], anxDays = 90;
+var anx = document.getElementById("anx");
+
+document.addEventListener("keydown", function(e){
+  var t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) return;
+  var code = e.code === "NumpadEnter" ? "Enter" : e.code;
+  anxBuf.push(code);
+  if (anxBuf.length > ANX_SEQ.length) anxBuf = anxBuf.slice(-ANX_SEQ.length);
+  if (anxBuf.length === ANX_SEQ.length && anxBuf.every(function(c, i){ return c === ANX_SEQ[i]; })){
+    anxBuf = [];
+    openAnalytics();
+  }
+});
+
+/* which site an action belongs to. Anything logged before the sites were
+   namespaced still has to land somewhere sensible, hence the legacy list. */
+var LEGACY_PBS8 = ["dashboard","map_draw","rent_roll","rent_tiers","search_apply","export_page"];
+function siteOf(action){
+  if (action.indexOf("pbs8:") === 0) return "pbs8";
+  if (action.indexOf("loanid:") === 0) return "loanid";
+  if (action.indexOf("greyhub:") === 0) return "greyhub";
+  if (action.indexOf("load:") === 0 || action.indexOf("download:") === 0) return "pbs8";
+  if (LEGACY_PBS8.indexOf(action) > -1) return "pbs8";
+  return null;                       /* bare "signin" is shared across all three */
+}
+
+function esc(x){
+  return String(x == null ? "" : x).replace(/[&<>"]/g, function(c){
+    return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c];
+  });
+}
+function shortDate(iso){
+  if (!iso) return "\u2014";
+  var d = new Date(iso);
+  if (isNaN(d)) return "\u2014";
+  return d.toLocaleDateString(undefined, { month:"short", day:"numeric" }) + " " +
+         d.toLocaleTimeString(undefined, { hour:"numeric", minute:"2-digit" });
+}
+
+function openAnalytics(){
+  anx.classList.add("open");
+  document.getElementById("anxBody").innerHTML =
+    '<p class="anx-empty">Loading\u2026</p>';
+  renderRange();
+  loadAnalytics();
+}
+function closeAnalytics(){ anx.classList.remove("open"); }
+document.getElementById("anxClose").addEventListener("click", closeAnalytics);
+anx.addEventListener("click", function(e){ if (e.target === anx) closeAnalytics(); });
+
+function renderRange(){
+  var wrap = document.getElementById("anxRange");
+  wrap.innerHTML = "";
+  [30, 90, 400].forEach(function(d){
+    var b = document.createElement("button");
+    b.textContent = d === 400 ? "All" : d + "d";
+    if (d === anxDays) b.className = "on";
+    b.addEventListener("click", function(){ anxDays = d; renderRange(); loadAnalytics(); });
+    wrap.appendChild(b);
+  });
+}
+
+function loadAnalytics(){
+  var body = document.getElementById("anxBody");
+  fetch(AUTH_API + "/usage?days=" + anxDays, {
+    headers:{ Authorization:"Bearer " + tokenGet() }, cache:"no-store"
+  }).then(function(r){
+    return r.json().catch(function(){ return null; }).then(function(j){
+      return { status:r.status, j:j };
+    });
+  }).then(function(res){
+    if (res.status === 403){
+      body.innerHTML = '<p class="anx-empty">This account is not authorised to view analytics.</p>';
+      return;
+    }
+    if (res.status === 501){
+      body.innerHTML = '<p class="anx-empty">' +
+        esc((res.j && res.j.error) || "Usage logging is not configured.") + '</p>';
+      return;
+    }
+    if (!res.j || !res.j.ok){
+      body.innerHTML = '<p class="anx-empty">Could not load analytics (HTTP ' +
+        res.status + ').</p>';
+      return;
+    }
+    renderAnalytics(res.j);
+  }).catch(function(err){
+    body.innerHTML = '<p class="anx-empty">Could not load analytics: ' +
+      esc(err.message) + '</p>';
+  });
+}
+
+function renderAnalytics(j){
+  var rows = j.rows || [];
+  var sites = { pbs8:{ n:0, users:{} }, loanid:{ n:0, users:{} }, greyhub:{ n:0, users:{} } };
+  var tools = {};        /* greyhub:click:<slug> -> {n, users:{}} */
+  var people = [];
+
+  rows.forEach(function(r){
+    var per = { pbs8:0, loanid:0, greyhub:0, shared:0 };
+    Object.keys(r.actions || {}).forEach(function(a){
+      var n = r.actions[a], site = siteOf(a);
+      if (site){
+        per[site] += n;
+        sites[site].n += n;
+        sites[site].users[r.email] = 1;
+      } else {
+        per.shared += n;
+      }
+      if (a.indexOf("greyhub:click:") === 0){
+        var slugName = a.slice("greyhub:click:".length);
+        var t = tools[slugName] || (tools[slugName] = { n:0, users:{} });
+        t.n += n;
+        t.users[r.email] = 1;
+      }
+    });
+    people.push({ email:r.email, last:r.last, per:per,
+                  total:per.pbs8 + per.loanid + per.greyhub });
+  });
+  people.sort(function(a, b){ return (b.last || "").localeCompare(a.last || ""); });
+
+  var h = '<div class="anx-tiles">';
+  [["pbs8","PBS8 Database"],["loanid","LoanID"],["greyhub","GreyHub"]].forEach(function(pair){
+    var k = pair[0], S = sites[k], u = Object.keys(S.users).length;
+    h += '<div class="anx-tile"><div class="k">' + esc(pair[1]) + '</div>' +
+         '<div class="v">' + u + '</div>' +
+         '<div class="n">' + (u === 1 ? "person" : "people") + ' \u00B7 ' +
+         S.n + ' action' + (S.n === 1 ? "" : "s") + '</div></div>';
+  });
+  h += '</div>';
+
+  h += '<h3>Who used what</h3><table><thead><tr><th>Person</th>' +
+       '<th style="text-align:right">PBS8</th><th style="text-align:right">LoanID</th>' +
+       '<th style="text-align:right">GreyHub</th><th>Last seen</th></tr></thead><tbody>';
+  if (!people.length){
+    h += '<tr><td colspan="5" class="anx-empty">Nothing recorded in this window.</td></tr>';
+  }
+  people.forEach(function(p){
+    h += '<tr><td class="who">' + esc(p.email) + '</td>' +
+         '<td class="num' + (p.per.pbs8 ? "" : " zero") + '">' + p.per.pbs8 + '</td>' +
+         '<td class="num' + (p.per.loanid ? "" : " zero") + '">' + p.per.loanid + '</td>' +
+         '<td class="num' + (p.per.greyhub ? "" : " zero") + '">' + p.per.greyhub + '</td>' +
+         '<td class="when">' + esc(shortDate(p.last)) + '</td></tr>';
+  });
+  h += '</tbody></table>';
+
+  var toolKeys = Object.keys(tools).sort(function(a, b){ return tools[b].n - tools[a].n; });
+  h += '<h3>Links opened from GreyHub</h3><table><thead><tr><th>Tool</th>' +
+       '<th style="text-align:right">Opens</th><th style="text-align:right">People</th>' +
+       '</tr></thead><tbody>';
+  if (!toolKeys.length){
+    h += '<tr><td colspan="3" class="anx-empty">No link clicks recorded yet.</td></tr>';
+  }
+  toolKeys.forEach(function(k){
+    h += '<tr><td class="who">' + esc(k) + '</td>' +
+         '<td class="num">' + tools[k].n + '</td>' +
+         '<td class="num">' + Object.keys(tools[k].users).length + '</td></tr>';
+  });
+  h += '</tbody></table>';
+
+  h += '<p class="anx-note">Counts are per person per day and the Worker collapses ' +
+       'the same action within 60 seconds, so these are activity levels rather than ' +
+       'exact click totals. Bare <code>signin</code> events are shared by all three ' +
+       'sites and are left out of the per-site columns.</p>';
+
+  document.getElementById("anxBody").innerHTML = h;
+  document.getElementById("anxSub").textContent =
+    rows.length + " people \u00B7 last " + j.days + " days";
+}
+
 /* ---------- directory dropdown: close on outside click and on Escape ---------- */
 var dir = document.getElementById("dir");
 document.addEventListener("pointerdown", function(e){
   if (dir.open && !dir.contains(e.target)) dir.open = false;
 });
 document.addEventListener("keydown", function(e){
+  if (e.key === "Escape" && anx.classList.contains("open")){
+    closeAnalytics(); return;
+  }
   if (e.key === "Escape" && focusIdx !== null && !dir.open){
     clearTimeout(closeT); letGo(); return;
   }
