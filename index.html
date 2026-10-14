@@ -249,7 +249,7 @@ a{color:inherit;text-decoration:none}
     0 22px 50px rgba(0,0,0,.5);
   display:grid;place-content:center;text-align:center;
   overflow:hidden;z-index:3;pointer-events:none;
-  transition:opacity .45s ease, transform .5s cubic-bezier(.2,.7,.25,1);
+  transition:opacity .45s ease;
 }
 
 /* the wordmark. "Gr" and "steel" never move; only the two middle glyphs change,
@@ -387,6 +387,11 @@ a{color:inherit;text-decoration:none}
 .satwrap.locked .lbl.sat-lbl text{fill:var(--ink-3)}
 
 .hit{fill:transparent;pointer-events:all;cursor:pointer}
+.cat-hit{cursor:grab}
+#map.dragging .cat-hit{cursor:grabbing}
+#map.dragging .cat{opacity:1}
+.cat.grabbed .cat-hold .bead{fill:#FFFFFF}
+.cat.grabbed .cat-hold .glow{opacity:1.6}
 
 .hint{margin:0;padding-block:0 14px;
   font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-3)}
@@ -763,7 +768,7 @@ CATEGORIES.forEach(function(cat, i){
   chold.appendChild(state.lblEl);
   state.numEl = label("cat-num flat", 92, n ? String(n).padStart(2, "0") : "—");
   chold.appendChild(state.numEl);
-  var hit = el("circle", { class:"hit", cx:0, cy:0, r:64, tabindex:"0", role:"button" });
+  var hit = el("circle", { class:"hit cat-hit", cx:0, cy:0, r:64, tabindex:"0", role:"button" });
   hit.setAttribute("aria-label", cat.name + ", " + n + (n === 1 ? " tool. " : " tools. ") + cat.blurb);
   state.hitEl = hit;
   chold.appendChild(hit);
@@ -777,7 +782,14 @@ CATEGORIES.forEach(function(cat, i){
   g.addEventListener("pointerleave", release);
   hit.addEventListener("focus", function(){ activate(i); });
   hit.addEventListener("blur", release);
-  hit.addEventListener("click", function(){ flash(state); });
+  hit.addEventListener("pointerdown", function(e){ startDrag(i, e, hit); });
+  hit.addEventListener("pointermove", moveDrag);
+  hit.addEventListener("pointerup", endDrag);
+  hit.addEventListener("pointercancel", endDrag);
+  hit.addEventListener("click", function(){
+    if (suppressClick){ suppressClick = false; return; }   /* that was a drag */
+    flash(state);
+  });
   hit.addEventListener("keydown", function(e){
     if (e.key === "Enter" || e.key === " "){ e.preventDefault(); activate(i); flash(state); }
   });
@@ -795,6 +807,63 @@ map.appendChild(resetZone);
    and the other five swing around to a small arc on the opposite side. */
 var spinA = 0, skyA = 0, miniA = 0, held = false, last = null, focusIdx = null;
 var skyDue = 0, meshDue = 0;
+
+/* ---------- grab, swing, fling ----------
+   The centre never moves. Grabbing a node and dragging turns the whole ring
+   under your cursor: the held node tracks the bearing of the pointer about
+   the centre, and every other node, the spokes and the tools come round with
+   it. Let go mid-swing and the ring keeps the angular velocity it had,
+   bleeding back to its resting drift. Orbiting and flinging are the same one
+   line of physics. */
+var BASE_W = 360 / SPIN;     /* the resting drift, deg/s                       */
+var spinW = BASE_W;          /* current angular velocity, deg/s                */
+var W_TAU = 1.6;             /* seconds for a fling to bleed back to the drift */
+var MAX_W = 300;             /* past ~300 deg/s the labels are just a blur     */
+var DEAD = 28;               /* units; inside this the pointer has no bearing  */
+var dragN = null;            /* {i, mx, my} while actually dragging            */
+var dragPending = null;      /* pointer is down but has not moved far enough   */
+var suppressClick = false;
+
+/* client pixels -> viewBox units, relative to the centre of the frame */
+function toUnits(cx, cy){
+  var r = map.getBoundingClientRect();
+  var sc = r.width ? 1040 / r.width : 1;
+  return [ (cx - (r.left + r.width / 2)) * sc, (cy - (r.top + r.height / 2)) * sc ];
+}
+
+function startDrag(i, e, el){
+  if (e.button !== undefined && e.button !== 0) return;
+  suppressClick = false;        /* a fresh press; the last drag is done with */
+  dragPending = { i:i, sx:e.clientX, sy:e.clientY, el:el, id:e.pointerId };
+  try { el.setPointerCapture(e.pointerId); } catch (err) {}
+}
+function moveDrag(e){
+  if (!dragPending) return;
+  if (!dragN){
+    var dx = e.clientX - dragPending.sx, dy = e.clientY - dragPending.sy;
+    if (Math.sqrt(dx * dx + dy * dy) < 5) return;   /* still a click, not a drag */
+    clearTimeout(closeT);
+    letGo();
+    dragN = { i:dragPending.i };
+    suppressClick = true;
+    map.classList.add("dragging");
+    cats[dragN.i].g.classList.add("grabbed");
+  }
+  var u = toUnits(e.clientX, e.clientY);
+  dragN.mx = u[0]; dragN.my = u[1];
+  e.preventDefault();
+}
+function endDrag(){
+  if (dragPending && dragPending.el){
+    try { dragPending.el.releasePointerCapture(dragPending.id); } catch (err) {}
+  }
+  dragPending = null;
+  if (dragN){
+    cats[dragN.i].g.classList.remove("grabbed");
+    dragN = null;
+    map.classList.remove("dragging");
+  }
+}
 
 /* Write an attribute only when it has actually moved. At rest this skips almost
    every write, which is most of what was making the map stutter. */
@@ -815,8 +884,23 @@ function frame(now){
   var kFast = 1 - Math.exp(-dt / .16);   /* tools */
   var kSlow = 1 - Math.exp(-dt / .26);   /* categories */
 
+  if (dragN){
+    var p0s = spinA;
+    /* turn the ring so the held node sits under the pointer's bearing */
+    if (dragN.mx * dragN.mx + dragN.my * dragN.my > DEAD * DEAD){
+      var want = Math.atan2(dragN.my, dragN.mx) * 180 / Math.PI - cats[dragN.i].theta;
+      var d = ((want - spinA + 540) % 360) - 180;
+      spinA += d * (1 - Math.exp(-dt / .03));   /* lag ~= tau * drag speed */
+    }
+    var ds = ((spinA - p0s + 540) % 360) - 180;
+    spinW = Math.max(-MAX_W, Math.min(MAX_W, ds / dt));
+    spinA = (spinA % 360 + 360) % 360;
+  } else if (!reduce && !held){
+    spinW += (BASE_W - spinW) * (1 - Math.exp(-dt / W_TAU));
+    spinA = (spinA + spinW * dt) % 360;
+  }
+
   if (!reduce){
-    if (!held) spinA = (spinA + dt * 360 / SPIN) % 360;
     miniA = (miniA + dt * 360 / MINI_SPIN) % 360;
     skyA = (skyA - dt * 360 / (SPIN * 3)) % 360;
   }
@@ -824,8 +908,14 @@ function frame(now){
      rotating either group repaints every child, so they get their own cadence. */
   skyDue -= dt;
   if (skyDue <= 0){ sky.setAttribute("transform", "rotate(" + skyA.toFixed(2) + ")"); skyDue = .25; }
+  /* while the ring is being turned the spoke layer has to keep up every
+     frame; at rest it goes back to its own slower cadence */
+  var busy = !!dragN || Math.abs(spinW - BASE_W) > 1;
   meshDue -= dt;
-  if (meshDue <= 0){ mesh.setAttribute("transform", "rotate(" + spinA.toFixed(2) + ")"); meshDue = .12; }
+  if (busy || meshDue <= 0){
+    mesh.setAttribute("transform", "rotate(" + spinA.toFixed(2) + ")");
+    meshDue = .12;
+  }
 
   var backMid = focusIdx === null ? 0 : cats[focusIdx].theta + spinA + 180;
   var backStep = BACK_ARC / (cats.length - 2);
@@ -849,8 +939,9 @@ function frame(now){
       tScale = .7; tLblY = 26; tNumY = 42;
     }
 
-    c.curA += (((tA - c.curA + 540) % 360) - 180) * kSlow;   /* shortest way round */
-    c.curR += (tR - c.curR) * kSlow;
+    var kPos = dragN ? 1 : kSlow;        /* the held node must not lag the cursor */
+    c.curA += (((tA - c.curA + 540) % 360) - 180) * kPos;   /* shortest way round */
+    c.curR += (tR - c.curR) * kPos;
     c.bead += (tBead - c.bead) * kSlow;
     c.scale += (tScale - c.scale) * kSlow;
     c.lblY += (tLblY - c.lblY) * kSlow;
@@ -904,6 +995,7 @@ requestAnimationFrame(frame);
 /* ---------- hover puts one category in the middle ---------- */
 var hint = document.getElementById("hint");
 function activate(i){
+  if (dragN) return;              /* holding one node should not promote another */
   clearTimeout(closeT);
   held = true;
   focusIdx = i;
