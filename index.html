@@ -50,8 +50,10 @@
   /* the wordmark face, embedded above */
   --f-mark:"FS Clerkenwell",Georgia,serif;
 
-  /* the map is sized so the whole network fits without scrolling */
-  --stage:min(1040px,90vw,calc(100vh - 196px));
+  /* The map is sized so the whole network fits without scrolling, and so
+     that the revolution counter always has its own column beside it. */
+  --hud:118px;
+  --stage:min(1040px,calc(100vw - 300px),calc(100vh - 196px));
 }
 
 *{box-sizing:border-box}
@@ -140,6 +142,107 @@ a{color:inherit;text-decoration:none}
 .anx td.when .what{display:block;margin-top:3px;color:var(--ink-2);font-size:11.5px}
 .anx-empty{padding:26px 10px;color:var(--ink-3);font-size:13px}
 .anx-note{margin:18px 0 0;font-size:11.5px;line-height:1.6;color:var(--ink-3)}
+
+/* ---------- the spin game: a counter, and a board behind five clicks ----------
+   The counter keeps its own column beside the map so it never sits on top of
+   a node. At rest it is barely there; it lights up for the length of a run. */
+.spinhud{
+  position:absolute;top:50%;left:calc(50% + var(--stage) / 2 + 16px);
+  transform:translateY(-50%);
+  width:var(--hud);display:flex;flex-direction:column;align-items:center;
+  pointer-events:none;user-select:none;
+  opacity:.42;transition:opacity .5s ease;
+}
+.spinhud.live{opacity:1}
+.sh-k{font-family:var(--f-display);font-weight:600;font-size:8.5px;
+  letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3);
+  margin-bottom:9px;transition:color .4s ease}
+.spinhud.live .sh-k{color:var(--accent)}
+
+.sh-dial{position:relative;width:112px;height:112px;display:grid;place-items:center}
+.sh-dial svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.sh-track{fill:none;stroke:rgba(176,196,222,.13);stroke-width:2}
+.sh-arc{fill:none;stroke:var(--accent);stroke-width:2.6;stroke-linecap:round;
+  stroke-dasharray:100;        /* the offset is an attribute, written by the
+                                  loop - a declaration here would outrank it */
+  filter:drop-shadow(0 0 7px rgba(176,196,222,.45))}
+.sh-n{
+  font-family:var(--f-display);font-weight:600;font-size:40px;line-height:1;
+  color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  transform-origin:50% 50%;
+}
+.sh-n.sm{font-size:30px}
+.sh-burst{position:absolute;inset:4px;border-radius:50%;
+  border:1.5px solid var(--accent-hot);opacity:0}
+.sh-plus{position:absolute;top:2px;font-family:var(--f-display);font-weight:600;
+  font-size:13px;letter-spacing:.04em;color:var(--accent-hot);opacity:0}
+
+/* one revolution completed */
+.sh-dial.pop .sh-n{animation:shpop .62s cubic-bezier(.22,1.5,.36,1)}
+.sh-dial.pop .sh-burst{animation:shburst .62s cubic-bezier(.2,.75,.3,1)}
+.sh-dial.pop .sh-plus{animation:shplus .82s ease-out}
+@keyframes shpop{
+  0%{transform:scale(1)}
+  26%{transform:scale(1.4);text-shadow:0 0 28px rgba(225,236,249,.9)}
+  100%{transform:scale(1);text-shadow:0 0 0 rgba(225,236,249,0)}
+}
+@keyframes shburst{
+  0%{opacity:.85;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.7)}
+}
+@keyframes shplus{
+  0%{opacity:0;transform:translateY(6px) scale(.8)}
+  18%{opacity:1;transform:translateY(0) scale(1)}
+  100%{opacity:0;transform:translateY(-30px) scale(1)}
+}
+
+.sh-rows{width:100%;margin-top:14px;display:grid;gap:5px}
+.sh-row{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:10px;letter-spacing:.17em;text-transform:uppercase;color:var(--ink-3)}
+.sh-row b{font-family:var(--f-display);font-weight:600;font-size:14px;
+  letter-spacing:0;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.spinhud.pb .sh-row b.best{color:var(--accent-hot);text-shadow:0 0 16px rgba(225,236,249,.5)}
+.sh-foot{margin-top:13px;text-align:center;font-size:9px;line-height:1.5;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+
+/* under 1000px there is no column to spare, so it goes below the map */
+@media (max-width:1000px){
+  :root{--stage:min(1040px,90vw,calc(100vh - 240px))}
+  .spinhud{position:static;transform:none;width:auto;flex-direction:row;
+    align-items:center;gap:16px;margin-top:6px}
+  .sh-rows{width:auto;margin-top:0;gap:3px}
+  .sh-k,.sh-foot{display:none}
+}
+
+/* the glass disc answers a click, five of them open the board */
+.core.tap{animation:coretap .5s cubic-bezier(.26,1.5,.4,1)}
+@keyframes coretap{
+  0%,100%{transform:translate(-50%,-50%) scale(1)}
+  38%{transform:translate(-50%,-50%) scale(var(--tap,1.04))}
+}
+
+#lbx{
+  position:fixed;inset:0;z-index:120;display:none;
+  background:rgba(4,5,8,.82);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  padding:clamp(16px,6vh,70px) clamp(16px,4vw,48px);overflow-y:auto;
+}
+#lbx.open{display:block}
+.lbx-card{max-width:560px;margin:0 auto;padding:30px 32px 26px}
+.lbx-card .anx-close{margin-left:auto}
+.lbx-card table{width:100%;border-collapse:collapse;font-size:13.5px}
+.lbx-card th{text-align:left;font-family:var(--f-display);font-weight:500;font-size:9.5px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+  padding:14px 10px 12px;border-bottom:1px solid rgba(255,255,255,.055)}
+.lbx-card td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.045);color:var(--ink-2)}
+.lbx-card tr:hover td{background:rgba(176,196,222,.045)}
+.lbx-card td.nm{color:var(--ink);font-weight:500}
+.lbx-card td.num,.lbx-card th.num{text-align:right;font-variant-numeric:tabular-nums}
+.lbx-card td.rk{width:34px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.lbx-card tr.me td{background:rgba(176,196,222,.07)}
+.lbx-card tr.me td.nm{color:var(--accent-hot)}
+.lbx-card tr.gold td.rk{color:var(--accent-hot)}
+.lbx-empty{padding:26px 10px;color:var(--ink-3);font-size:13px;line-height:1.6}
 
 /* ---------- sign-in gate ---------- */
 #authGate{
@@ -339,8 +442,12 @@ a{color:inherit;text-decoration:none}
 .focusfield{fill:transparent;pointer-events:none}
 .cat.on .focusfield{pointer-events:all}
 /* ...and the middle is the way back out of it */
-.resetzone{fill:transparent;pointer-events:none;cursor:default}
-#map.focused .resetzone{pointer-events:all}
+.resetzone{fill:transparent;pointer-events:all;cursor:pointer}
+
+/* past a few hundred degrees a second the labels are a smear; fading them
+   out is both kinder to read and a good deal cheaper to paint */
+#map .lbl,#map .num{transition:opacity .3s ease}
+#map.whirl .lbl,#map.whirl .num{opacity:.08}
 
 /* clicking a category flashes its tools rather than opening anything */
 .pulse{fill:none;stroke:var(--accent-hot);stroke-width:2.5;opacity:0;pointer-events:none}
@@ -474,6 +581,20 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
   </div>
 </div>
 
+<div id="lbx" aria-hidden="true">
+  <div class="lbx-card glass">
+    <div class="anx-head">
+      <h2>Spin Leaderboard</h2>
+      <span class="sub" id="lbxSub"></span>
+      <button class="anx-close" id="lbxClose">Close</button>
+    </div>
+    <div id="lbxBody"></div>
+    <p class="anx-note">A run is one grab. Revolutions count from the moment you
+      take hold of a node until the ring settles again &mdash; let go and grab it
+      a second time and you have started a new run.</p>
+  </div>
+</div>
+
 <div id="authGate">
   <div class="ag-card glass">
     <div class="ag-brand">Greysteel</div>
@@ -519,6 +640,23 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
     <div class="core" id="core" aria-hidden="true">
       <b class="mark">Gr<span class="swap"><span class="s1">ey</span><span class="s2">AI</span></span>steel</b>
     </div>
+  </div>
+  <div class="spinhud" id="spinhud" aria-hidden="true">
+    <div class="sh-k">Revolutions</div>
+    <div class="sh-dial" id="shDial">
+      <svg viewBox="-56 -56 112 112">
+        <circle class="sh-track" r="50" pathLength="100"/>
+        <circle class="sh-arc" id="shArc" r="50" pathLength="100" stroke-dashoffset="100" transform="rotate(-90)"/>
+      </svg>
+      <span class="sh-burst"></span>
+      <span class="sh-plus">+1</span>
+      <span class="sh-n" id="shN">0</span>
+    </div>
+    <div class="sh-rows">
+      <div class="sh-row"><span>Best</span><b class="best" id="shBest">&mdash;</b></div>
+      <div class="sh-row"><span>Last</span><b id="shLast">&mdash;</b></div>
+    </div>
+    <div class="sh-foot" id="shFoot">Grab a node<br>and fling it</div>
   </div>
   <p class="hint" id="hint">Hover a node</p>
 </section>
@@ -816,10 +954,15 @@ var skyDue = 0, meshDue = 0;
    bleeding back to its resting drift. Orbiting and flinging are the same one
    line of physics. */
 var BASE_W = 360 / SPIN;     /* the resting drift, deg/s                       */
-var spinW = BASE_W;          /* current angular velocity, deg/s                */
-var W_TAU = 1.6;             /* seconds for a fling to bleed back to the drift */
-var MAX_W = 300;             /* past ~300 deg/s the labels are just a blur     */
+var REST_W = reduce ? 0 : BASE_W;   /* what it settles back to                 */
+var spinW = REST_W;          /* current angular velocity, deg/s                */
+var W_FRIC = 120;           /* deg/s shed every second, whatever the speed    */
+var W_TAU = 2.6;             /* plus drag in proportion to speed, on top of it */
+var MAX_W = 20000;           /* a sanity rail only; a fling is not speed-capped*/
+var W_SMOOTH = .04;          /* seconds of averaging on the release velocity   */
+var BLUR_W = 420;            /* deg/s; past here the labels stop being legible */
 var SETTLED = 30;            /* deg/s; above this the ring ignores hover       */
+var END_W = 2.4;             /* deg/s; below this the ring has stopped         */
 var DEAD = 28;               /* units; inside this the pointer has no bearing  */
 var dragN = null;            /* {i, mx, my} while actually dragging            */
 var dragPending = null;      /* pointer is down but has not moved far enough   */
@@ -847,6 +990,7 @@ function moveDrag(e){
     letGo();
     dragN = { i:dragPending.i };
     suppressClick = true;
+    startRun();
     map.classList.add("dragging");
     cats[dragN.i].g.classList.add("grabbed");
   }
@@ -891,15 +1035,35 @@ function frame(now){
     if (dragN.mx * dragN.mx + dragN.my * dragN.my > DEAD * DEAD){
       var want = Math.atan2(dragN.my, dragN.mx) * 180 / Math.PI - cats[dragN.i].theta;
       var d = ((want - spinA + 540) % 360) - 180;
-      spinA += d * (1 - Math.exp(-dt / .03));   /* lag ~= tau * drag speed */
+      spinA += d * (1 - Math.exp(-dt / .02));   /* lag ~= tau * drag speed */
     }
     var ds = ((spinA - p0s + 540) % 360) - 180;
-    spinW = Math.max(-MAX_W, Math.min(MAX_W, ds / dt));
+    /* A single frame is a noisy thing to read a fling off, and a flick that
+       lands on a slow frame would be thrown away. Average over about three. */
+    spinW += (ds / dt - spinW) * (1 - Math.exp(-dt / W_SMOOTH));
+    spinW = Math.max(-MAX_W, Math.min(MAX_W, spinW));
     spinA = (spinA % 360 + 360) % 360;
-  } else if (!reduce && !held){
-    spinW += (BASE_W - spinW) * (1 - Math.exp(-dt / W_TAU));
-    spinA = (spinA + spinW * dt) % 360;
+    runAdd(ds);
+  } else if (!held){
+    /* Steady friction, with a little drag on top. The steady part is what
+       makes the game honest: how long it runs is set by how hard you threw
+       it, so a nudge is over in a second or two and a real fling goes on
+       turning for the better part of ten. Pure exponential decay would take
+       the same time either way. */
+    var v = spinW - REST_W;
+    if (v){
+      var dec = (W_FRIC + Math.abs(v) / W_TAU) * dt;
+      v = Math.abs(v) <= dec ? 0 : v - (v < 0 ? -dec : dec);
+    }
+    spinW = REST_W + v;
+    var dc = spinW * dt;
+    spinA = (spinA + dc) % 360;
+    runAdd(dc);
   }
+  if (runOn && !dragN && (held || Math.abs(spinW) < END_W)) endRun();
+
+  var wh = Math.abs(spinW) > BLUR_W;
+  if (wh !== whirl){ whirl = wh; map.classList.toggle("whirl", wh); }
 
   if (!reduce){
     miniA = (miniA + dt * 360 / MINI_SPIN) % 360;
@@ -911,7 +1075,7 @@ function frame(now){
   if (skyDue <= 0){ sky.setAttribute("transform", "rotate(" + skyA.toFixed(2) + ")"); skyDue = .25; }
   /* while the ring is being turned the spoke layer has to keep up every
      frame; at rest it goes back to its own slower cadence */
-  var busy = !!dragN || Math.abs(spinW - BASE_W) > 1;
+  var busy = !!dragN || Math.abs(spinW - REST_W) > 1;
   meshDue -= dt;
   if (busy || meshDue <= 0){
     mesh.setAttribute("transform", "rotate(" + spinA.toFixed(2) + ")");
@@ -999,11 +1163,175 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 
+/* ================= the spin game =================
+   A run is one grab. It opens the moment you take hold of a node and closes
+   when the ring has settled again - or the instant you grab it a second time,
+   so a score is always one continuous gesture rather than a stack of shoves.
+   Revolutions come off the net turn, so wagging it back and forth cancels
+   out instead of adding up.
+   ================================================= */
+var runOn = false, runDeg = 0, runRevs = 0, whirl = false;
+var bestRevs = 0, BKEY = "greyhub.spin.best";
+try { bestRevs = parseInt(localStorage.getItem(BKEY), 10) || 0; } catch (e) {}
+
+var hud   = document.getElementById("spinhud");
+var shDial = document.getElementById("shDial");
+var shArc = document.getElementById("shArc");
+var shN   = document.getElementById("shN");
+var shBest = document.getElementById("shBest");
+var shLast = document.getElementById("shLast");
+var shFoot = document.getElementById("shFoot");
+if (bestRevs) shBest.textContent = bestRevs;
+
+var arcAt = -1, popT = null, pbT = null, popLast = 0;
+function hudArc(f){
+  if (Math.abs(f - arcAt) < .004) return;      /* one write a frame is plenty */
+  arcAt = f;
+  shArc.setAttribute("stroke-dashoffset", (100 - f * 100).toFixed(1));
+}
+function hudN(n){
+  if (shN.textContent === String(n)) return;
+  shN.textContent = n;
+  shN.classList.toggle("sm", n > 99);
+}
+function popRev(){
+  /* on a hard fling the revolutions arrive faster than the animation runs;
+     past about six a second it would only thrash, so it is let be */
+  var now = performance.now();
+  if (now - popLast < 170) return;
+  popLast = now;
+  shDial.classList.remove("pop");
+  void shDial.getBoundingClientRect();         /* force a reflow so it replays */
+  shDial.classList.add("pop");
+  clearTimeout(popT);
+  popT = setTimeout(function(){ shDial.classList.remove("pop"); }, 860);
+}
+
+function runAdd(d){
+  if (!runOn) return;
+  runDeg += d;
+  var t = Math.abs(runDeg) / 360, r = Math.floor(t);
+  if (r !== runRevs){
+    if (r > runRevs) popRev();
+    runRevs = r;
+    hudN(r);
+  }
+  hudArc(t - r);
+}
+
+function startRun(){
+  if (runOn) endRun();        /* a second grab is a new attempt, not more of this one */
+  runOn = true; runDeg = 0; runRevs = 0;
+  hudN(0); hudArc(0);
+  hud.classList.remove("pb");
+  hud.classList.add("live");
+  shFoot.innerHTML = "Counting";
+}
+function endRun(){
+  if (!runOn) return;
+  runOn = false;
+  hud.classList.remove("live");
+  var r = runRevs;
+  shLast.textContent = r;
+  shFoot.innerHTML = r ? (r === 1 ? "One revolution" : r + " revolutions")
+                       : "Give it a<br>proper fling";
+  if (r > bestRevs){
+    bestRevs = r;
+    shBest.textContent = r;
+    hud.classList.add("pb");
+    clearTimeout(pbT);
+    pbT = setTimeout(function(){ hud.classList.remove("pb"); }, 4000);
+    try { localStorage.setItem(BKEY, r); } catch (e) {}
+  }
+  if (r >= 1) submitSpin(r);
+}
+
+/* ---------- the board, behind five taps on the glass ---------- */
+var BOARD = null, tapN = 0, tapT = null;
+var lbx = document.getElementById("lbx");
+
+function centreTap(){
+  var c = document.getElementById("core");
+  tapN++;
+  clearTimeout(tapT);
+  tapT = setTimeout(function(){ tapN = 0; }, 1400);
+  c.style.setProperty("--tap", (1 + tapN * .042).toFixed(3));
+  c.classList.remove("tap");
+  void c.getBoundingClientRect();
+  c.classList.add("tap");
+  if (tapN >= 5){
+    tapN = 0; clearTimeout(tapT);
+    c.classList.add("sweep");
+    setTimeout(function(){ c.classList.remove("sweep"); }, 1250);
+    openBoard();
+  }
+}
+resetZone.addEventListener("click", centreTap);
+
+function submitSpin(r){
+  var t = tokenGet();
+  if (!t) return;
+  fetch(AUTH_API + "/spin", {
+    method:"POST",
+    headers:{ Authorization:"Bearer " + t, "Content-Type":"application/json" },
+    body:JSON.stringify({ revs:r })
+  }).then(function(x){ return x.ok ? x.json() : null; })
+    .then(function(j){ if (j && j.board) BOARD = j; })
+    .catch(function(){});
+}
+
+function openBoard(){
+  lbx.classList.add("open");
+  renderBoard(BOARD);
+  var t = tokenGet();
+  if (!t) return;
+  fetch(AUTH_API + "/spin", {
+    headers:{ Authorization:"Bearer " + t }, cache:"no-store"
+  }).then(function(x){ return x.ok ? x.json() : null; })
+    .then(function(j){ if (j && j.board){ BOARD = j; renderBoard(j); } else renderBoard(null); })
+    .catch(function(){ renderBoard(null); });
+}
+function closeBoard(){ lbx.classList.remove("open"); }
+document.getElementById("lbxClose").addEventListener("click", closeBoard);
+lbx.addEventListener("click", function(e){ if (e.target === lbx) closeBoard(); });
+document.addEventListener("keydown", function(e){
+  if (e.key === "Escape" && lbx.classList.contains("open")) closeBoard();
+});
+
+function renderBoard(j){
+  var body = document.getElementById("lbxBody");
+  var sub  = document.getElementById("lbxSub");
+  var rows = (j && j.board) || [];
+  sub.textContent = bestRevs ? "Your best \u00B7 " + bestRevs : "";
+  if (!rows.length){
+    body.innerHTML = '<div class="lbx-empty">' + (bestRevs
+      ? "Nothing has reached the board yet. Your best run so far is <b>" +
+        bestRevs + "</b> " + (bestRevs === 1 ? "revolution" : "revolutions") + "."
+      : "No runs yet. Take hold of a node, fling it, and the count starts.") +
+      "</div>";
+    return;
+  }
+  var you = (j && j.you) || "";
+  var h = '<table><thead><tr><th class="rk"></th><th>Who</th>' +
+          '<th class="num">Best</th><th class="num">Runs</th></tr></thead><tbody>';
+  for (var i = 0; i < rows.length; i++){
+    var r = rows[i], cls = [];
+    if (r.email === you) cls.push("me");
+    if (i === 0) cls.push("gold");
+    h += '<tr class="' + cls.join(" ") + '">' +
+         '<td class="rk">' + (i + 1) + '</td>' +
+         '<td class="nm">' + esc(r.name || String(r.email).split("@")[0]) + '</td>' +
+         '<td class="num">' + (r.best || 0) + '</td>' +
+         '<td class="num">' + (r.runs || 0) + '</td></tr>';
+  }
+  body.innerHTML = h + '</tbody></table>';
+}
+
 /* ---------- hover puts one category in the middle ---------- */
 var hint = document.getElementById("hint");
 function activate(i){
   if (dragN) return;              /* holding one node should not promote another */
-  if (Math.abs(spinW - BASE_W) > SETTLED) return;   /* let a fling finish first */
+  if (Math.abs(spinW - REST_W) > SETTLED) return;   /* let a fling finish first */
   clearTimeout(closeT);
   held = true;
   focusIdx = i;
