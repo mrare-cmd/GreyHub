@@ -698,7 +698,7 @@ CATEGORIES.forEach(function(cat, i){
 
   var state = {
     g:g, theta:theta, n:n, sats:[], wire:null, reaching:false, target:0, pt:[0,0],
-    curR:R_CAT, curA:theta, bead:n ? CAT_R : CAT_R - 4, scale:1, lblY:70, numY:92,
+    curR:R_CAT, curA:theta, curOff:0, bead:n ? CAT_R : CAT_R - 4, scale:1, lblY:70, numY:92,
     w:{}
   };
 
@@ -819,6 +819,7 @@ var BASE_W = 360 / SPIN;     /* the resting drift, deg/s                       *
 var spinW = BASE_W;          /* current angular velocity, deg/s                */
 var W_TAU = 1.6;             /* seconds for a fling to bleed back to the drift */
 var MAX_W = 300;             /* past ~300 deg/s the labels are just a blur     */
+var SETTLED = 30;            /* deg/s; above this the ring ignores hover       */
 var DEAD = 28;               /* units; inside this the pointer has no bearing  */
 var dragN = null;            /* {i, mx, my} while actually dragging            */
 var dragPending = null;      /* pointer is down but has not moved far enough   */
@@ -939,8 +940,14 @@ function frame(now){
       tScale = .7; tLblY = 26; tNumY = 42;
     }
 
+    /* Split the target into the ring's own rotation, which is applied as-is so
+       the nodes stay locked to the spokes however fast it turns, and the offset
+       from it, which is what focus moves and so is the only part eased. */
+    var base = c.theta + spinA;
+    var tOff = ((tA - base + 540) % 360) - 180;
     var kPos = dragN ? 1 : kSlow;        /* the held node must not lag the cursor */
-    c.curA += (((tA - c.curA + 540) % 360) - 180) * kPos;   /* shortest way round */
+    c.curOff += (((tOff - c.curOff + 540) % 360) - 180) * kPos;
+    c.curA = base + c.curOff;
     c.curR += (tR - c.curR) * kPos;
     c.bead += (tBead - c.bead) * kSlow;
     c.scale += (tScale - c.scale) * kSlow;
@@ -996,6 +1003,7 @@ requestAnimationFrame(frame);
 var hint = document.getElementById("hint");
 function activate(i){
   if (dragN) return;              /* holding one node should not promote another */
+  if (Math.abs(spinW - BASE_W) > SETTLED) return;   /* let a fling finish first */
   clearTimeout(closeT);
   held = true;
   focusIdx = i;
