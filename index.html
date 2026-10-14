@@ -151,12 +151,18 @@ a{color:inherit;text-decoration:none}
   transform:translateY(-50%);
   width:var(--hud);display:flex;flex-direction:column;align-items:center;
   pointer-events:none;user-select:none;
-  opacity:.42;transition:opacity .5s ease;
+  opacity:.42;transition:opacity .5s ease, --heat 2.6s ease;
 }
-.spinhud.live{opacity:1}
-.sh-k{font-family:var(--f-display);font-weight:600;font-size:8.5px;
+/* --heat cools slowly once the ring has stopped, which is why it is not
+   scoped to .live: the glow has to outlast the run to be seen fading */
+.spinhud.live{opacity:1;transition:opacity .5s ease, --heat .45s ease-out}
+.sh-k{font-family:var(--f-display);font-weight:600;font-size:8.5px;line-height:14px;
   letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3);
-  margin-bottom:9px;transition:color .4s ease}
+  margin-bottom:9px;transition:color .4s ease, opacity .25s ease;
+  width:max-content;max-width:200px;text-align:center}
+/* once a run has earned a rank, the label is the rank */
+.sh-k.ranked{font-size:10px;letter-spacing:.16em;color:#FFFFFF;
+  text-shadow:0 0 calc(6px + 16px * var(--heat)) rgba(225,236,249,.75)}
 .spinhud.live .sh-k{color:var(--accent)}
 
 .sh-dial{position:relative;width:112px;height:112px;display:grid;place-items:center}
@@ -200,7 +206,82 @@ a{color:inherit;text-decoration:none}
   100%{opacity:0;transform:translateY(-30px) scale(1)}
 }
 
-.sh-rows{width:100%;margin-top:14px;display:grid;gap:5px}
+/* ---------- heat: steel blue at the start of a run, white-hot by thirty ---------- */
+@property --heat{syntax:"<number>";inherits:true;initial-value:0}
+.spinhud .sh-n{
+  color:rgb(calc(176 + 79 * var(--heat)) calc(196 + 59 * var(--heat)) calc(222 + 33 * var(--heat)));
+  font-size:calc(40px + 22px * var(--heat));
+  text-shadow:0 0 calc(4px + 34px * var(--heat)) rgba(225,236,249,calc(.12 + .78 * var(--heat)));
+}
+.spinhud .sh-arc{
+  stroke:rgb(calc(176 + 79 * var(--heat)) calc(196 + 59 * var(--heat)) calc(222 + 33 * var(--heat)));
+  stroke-width:calc(2.6px + 2.8px * var(--heat));
+  filter:drop-shadow(0 0 calc(7px + 16px * var(--heat)) rgba(225,236,249,calc(.45 + .5 * var(--heat))));
+}
+.spinhud .sh-track{stroke:rgba(176,196,222,calc(.13 + .22 * var(--heat)))}
+.spinhud.live.winding .sh-arc{stroke:var(--accent-hot);opacity:.5}
+
+/* the number sits in its own box so it can tremble and pop at once */
+.sh-nw{position:relative;z-index:1;display:grid;place-items:center}
+
+/* a corona that wakes up around the dial from the second rank */
+.sh-corona{position:absolute;inset:-18px;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 0deg,
+    rgba(225,236,249,0) 0deg, rgba(225,236,249,.85) 42deg, rgba(225,236,249,0) 100deg,
+    rgba(176,196,222,0) 180deg, rgba(176,196,222,.6) 228deg, rgba(176,196,222,0) 286deg);
+  -webkit-mask:radial-gradient(circle closest-side, transparent 72%, #000 77%, #000 86%, transparent 93%);
+          mask:radial-gradient(circle closest-side, transparent 72%, #000 77%, #000 86%, transparent 93%);
+  filter:blur(2.5px);
+  opacity:clamp(0, calc(var(--heat) * 1.6 - .45), 1);
+  animation:corona 1.4s linear infinite}
+.spinhud[data-tier="3"] .sh-corona{animation-duration:1s}
+.spinhud[data-tier="4"] .sh-corona{animation-duration:.8s}
+.spinhud[data-tier="5"] .sh-corona{animation-duration:.62s}
+.spinhud[data-tier="6"] .sh-corona{animation-duration:.46s}
+@keyframes corona{to{transform:rotate(360deg)}}
+
+/* sparks and shockwaves are pooled and driven from script */
+.sh-spark{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;
+  border-radius:50%;background:#FFFFFF;box-shadow:0 0 6px 1px rgba(225,236,249,.9);
+  opacity:0;pointer-events:none}
+.sh-wave{position:absolute;inset:4px;border-radius:50%;border:1.5px solid #FFFFFF;
+  opacity:0;pointer-events:none}
+
+/* a rank, a new best or the top of the board stamps in above the dial,
+   then settles into the label slot */
+.sh-stamp{position:absolute;left:50%;bottom:calc(100% + 2px);z-index:2;width:220px;
+  font-family:var(--f-display);font-weight:700;font-size:21px;line-height:1.08;
+  letter-spacing:.06em;text-transform:uppercase;text-align:center;color:#FFFFFF;
+  text-shadow:0 0 18px rgba(225,236,249,.85),0 0 44px rgba(176,196,222,.6);
+  opacity:0;pointer-events:none;transform:translateX(-50%)}
+.sh-stamp.best,.sh-stamp.top{font-size:26px}
+
+/* chasing your best: the number cannot sit still */
+.spinhud.chase .sh-nw{animation:tremble .14s linear infinite}
+@keyframes tremble{
+  0%{transform:translate(-1.2px,.6px)}  25%{transform:translate(1px,-1px)}
+  50%{transform:translate(-.6px,-.5px)} 75%{transform:translate(1.2px,.8px)}
+  100%{transform:translate(0,0)}
+}
+/* the top rank buzzes like a phone on a desk */
+.spinhud.live[data-tier="6"] .sh-k{animation:buzz 1.5s ease-in-out infinite}
+@keyframes buzz{
+  0%,34%,100%{transform:none}
+  4%{transform:rotate(-4deg) translateX(-1px)}  8%{transform:rotate(4deg) translateX(1px)}
+  12%{transform:rotate(-4deg)} 16%{transform:rotate(4deg)} 20%{transform:rotate(-3deg)}
+  24%{transform:rotate(3deg)}  28%{transform:rotate(-1.5deg)}
+}
+@media (prefers-reduced-motion:reduce){
+  .sh-corona,.spinhud.chase .sh-nw,.spinhud.live[data-tier="6"] .sh-k{animation:none}
+}
+
+/* what is happening right now: chasing, passing someone, a new best */
+.sh-call{min-height:28px;margin-top:8px;width:180px;text-align:center;
+  font-size:9.5px;line-height:1.45;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--accent-hot);text-shadow:0 0 12px rgba(225,236,249,.45)}
+.sh-call b{color:#FFFFFF;font-weight:600}
+
+.sh-rows{width:100%;margin-top:6px;display:grid;gap:5px}
 .sh-row{display:flex;justify-content:space-between;align-items:baseline;
   font-size:10px;letter-spacing:.17em;text-transform:uppercase;color:var(--ink-3)}
 .sh-row b{font-family:var(--f-display);font-weight:600;font-size:14px;
@@ -656,16 +737,19 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
     </div>
   </div>
   <div class="spinhud" id="spinhud" aria-hidden="true">
-    <div class="sh-k">Revolutions</div>
+    <div class="sh-k" id="shK">Revolutions</div>
     <div class="sh-dial" id="shDial">
+      <span class="sh-corona"></span>
       <svg viewBox="-56 -56 112 112">
         <circle class="sh-track" r="50" pathLength="100"/>
         <circle class="sh-arc" id="shArc" r="50" pathLength="100" stroke-dashoffset="100" transform="rotate(-90)"/>
       </svg>
       <span class="sh-burst"></span>
       <span class="sh-plus">+1</span>
-      <span class="sh-n" id="shN">0</span>
+      <span class="sh-nw"><span class="sh-n" id="shN">0</span></span>
+      <span class="sh-stamp" id="shStamp"></span>
     </div>
+    <div class="sh-call" id="shCall"></div>
     <div class="sh-rows">
       <div class="sh-row"><span>Best</span><b class="best" id="shBest">&mdash;</b></div>
       <div class="sh-row"><span>Last</span><b id="shLast">&mdash;</b></div>
@@ -1212,7 +1296,48 @@ function hudN(n){
   shN.textContent = n;
   shN.classList.toggle("sm", n > 99);
 }
-function popRev(){
+/* ---------- ranks. The names are the team's. ---------- */
+var RANKS = [
+  { at:5,  name:"Millichumpy" },
+  { at:10, name:"You've hit your Rock" },
+  { at:15, name:"Busty" },
+  { at:20, name:"AI Robust Grow" },
+  { at:25, name:"Vouched" },
+  { at:30, name:"Ari is calling..." }
+];
+var HEAT_TOP = 30;           /* revolutions at which the dial is white-hot  */
+function tierOf(r){ var t = 0; while (t < RANKS.length && r >= RANKS[t].at) t++; return t; }
+
+var shK = document.getElementById("shK"), shCall = document.getElementById("shCall");
+var shStamp = document.getElementById("shStamp"), coreEl = document.getElementById("core");
+var runTier = 0, runPrevBest = 0, runBestFired = false, rivals = [], rivalIdx = 0, heat = 0;
+
+function setHeat(r){
+  heat = Math.min(1, r / HEAT_TOP);
+  hud.style.setProperty("--heat", heat.toFixed(3));
+}
+/* steel blue heating to white, for the effects drawn from script */
+function hotRGB(h, a){
+  return "rgba(" + Math.round(176 + 79 * h) + "," + Math.round(196 + 59 * h) + "," +
+         Math.round(222 + 33 * h) + "," + a.toFixed(2) + ")";
+}
+
+/* pooled, so a hard fling never builds DOM at sixty frames a second */
+var sparks = [], sparkAt = 0, waves = [];
+(function(){
+  var nw = shDial.querySelector(".sh-nw");
+  for (var i = 0; i < 44; i++){
+    var sp = document.createElement("span"); sp.className = "sh-spark";
+    shDial.insertBefore(sp, nw); sparks.push(sp);
+  }
+  for (var k = 0; k < 3; k++){
+    var wv = document.createElement("span"); wv.className = "sh-wave";
+    shDial.insertBefore(wv, nw); waves.push(wv);
+  }
+})();
+
+/* one revolution completed - and everything after the first rank grows with it */
+function popRev(tier){
   /* on a hard fling the revolutions arrive faster than the animation runs;
      past about six a second it would only thrash, so it is let be */
   var now = performance.now();
@@ -1223,6 +1348,194 @@ function popRev(){
   shDial.classList.add("pop");
   clearTimeout(popT);
   popT = setTimeout(function(){ shDial.classList.remove("pop"); }, 860);
+  if (reduce || !shDial.animate) return;
+
+  var n = tier >= 2 ? Math.min(30, 6 + 4 * tier) : tier === 1 ? 5 : 0;
+  for (var i = 0; i < n; i++){
+    var s = sparks[sparkAt++ % sparks.length];
+    var a = Math.random() * Math.PI * 2;
+    var d = (44 + Math.random() * 42) * (.8 + heat * .9);
+    var z = .6 + Math.random() * (.6 + heat);
+    s.animate([
+      { opacity:1, transform:"translate(0,0) scale(" + z.toFixed(2) + ")" },
+      { opacity:0, transform:"translate(" + (Math.cos(a) * d).toFixed(1) + "px," +
+                                            (Math.sin(a) * d).toFixed(1) + "px) scale(.2)" }
+    ], { duration:520 + Math.random() * 380, easing:"cubic-bezier(.15,.7,.3,1)" });
+  }
+  var w = tier >= 4 ? 3 : tier >= 2 ? 2 : tier >= 1 ? 1 : 0;
+  for (var k = 0; k < w; k++){
+    waves[k].animate([
+      { opacity:.9, transform:"scale(1)", borderColor:hotRGB(heat, 1) },
+      { opacity:0,  transform:"scale(" + (1.7 + heat * 1.1 + k * .25).toFixed(2) + ")",
+        borderColor:hotRGB(heat, 1) }
+    ], { duration:700 + k * 120, delay:k * 90, easing:"cubic-bezier(.2,.75,.3,1)" });
+  }
+  if (tier >= 3){                              /* from Busty up, the dial kicks */
+    var m = 1 + (tier - 3) * .9;
+    shDial.animate([
+      { transform:"translate(0,0)" },
+      { transform:"translate(" + (-m) + "px," + (m * .6).toFixed(1) + "px)" },
+      { transform:"translate(" + m + "px," + (-m * .5).toFixed(1) + "px)" },
+      { transform:"translate(" + (-m * .6).toFixed(1) + "px," + (-m * .4).toFixed(1) + "px)" },
+      { transform:"translate(0,0)" }
+    ], { duration:180, easing:"linear" });
+  }
+}
+
+/* ---------- the ring flashes with the count, never more than three a second ----------
+   Three a second is the seizure-safety ceiling for anything this size, and
+   a hard fling turns over far faster than that, so most revolutions are
+   counted in the dial without lighting up the ring. */
+var flashLast = 0, flashT = null;
+function pageFlash(big){
+  if (reduce || !coreEl.animate) return;
+  var now = performance.now(), since = now - flashLast;
+  if (since < 340){
+    if (big){                                  /* a big moment is late, never dropped */
+      clearTimeout(flashT);
+      flashT = setTimeout(function(){ pageFlash(true); }, 345 - since);
+    }
+    return;
+  }
+  flashLast = now;
+  var h = big ? Math.max(heat, .7) : heat, dur = big ? 560 : 340;
+  var sp = map.querySelectorAll(".spoke");
+  for (var i = 0; i < sp.length; i++)
+    sp[i].animate([{ stroke:hotRGB(h, .3 + .6 * h), strokeWidth:(1.1 + 2.6 * h).toFixed(2) + "px",
+                     offset:0 }], { duration:dur, easing:"ease-out" });
+  for (var c = 0; c < cats.length; c++){
+    cats[c].beadEl.animate([{ fill:"#FFFFFF", offset:0 }], { duration:dur, easing:"ease-out" });
+    cats[c].glowEl.animate([{ opacity:1, offset:0 }], { duration:dur + 120, easing:"ease-out" });
+  }
+  coreEl.animate([{ offset:0, borderColor:hotRGB(h, .35 + .5 * h), boxShadow:
+    "inset 0 1px 0 rgba(255,255,255,.26), inset 0 -18px 38px rgba(176,196,222,.07), " +
+    "0 0 56px rgba(176,196,222,.10), 0 22px 50px rgba(0,0,0,.5), " +
+    "0 0 " + Math.round(30 + 70 * h) + "px " + Math.round(2 + 14 * h) + "px " + hotRGB(h, .18 + .5 * h) }],
+    { duration:dur + 80, easing:"ease-out" });
+}
+
+/* ---------- stamps: one at a time, and every one is seen ----------
+   A hard fling can earn four ranks in two seconds. Rather than drop any, the
+   stamp on screen hurries whenever others are waiting behind it, so they
+   all land and none lags far behind the count. */
+var stampQ = [], stampAnim = null;
+function hurry(){
+  if (stampAnim && stampQ.length) stampAnim.playbackRate = Math.min(3, 1.6 + stampQ.length * .5);
+}
+function stamp(text, kind){
+  stampQ.push({ text:text, kind:kind });
+  if (!stampAnim) nextStamp(); else hurry();
+}
+function nextStamp(){
+  var q = stampQ.shift();
+  if (!q){ stampAnim = null; shK.style.opacity = ""; return; }
+  shStamp.textContent = q.text;
+  shStamp.className = "sh-stamp " + q.kind;
+  shK.style.opacity = "0";
+  var dur = q.kind === "rank" ? 1450 : 1750;
+  if (!shStamp.animate){ setTimeout(nextStamp, dur); stampAnim = { kind:q.kind }; return; }
+  stampAnim = shStamp.animate(reduce ? [
+      { opacity:0 }, { opacity:1, offset:.15 }, { opacity:1, offset:.75 }, { opacity:0 }
+    ] : [
+      { opacity:0, transform:"translateX(-50%) scale(2.6)",  filter:"blur(10px)", letterSpacing:".45em" },
+      { opacity:1, transform:"translateX(-50%) scale(1)",    filter:"blur(0px)",  letterSpacing:".06em", offset:.16 },
+      { opacity:1, transform:"translateX(-50%) scale(1.05)", filter:"blur(0px)",  letterSpacing:".06em", offset:.72 },
+      { opacity:0, transform:"translateX(-50%) translateY(-14px) scale(1.12)", filter:"blur(5px)", letterSpacing:".1em" }
+    ], { duration:dur, easing:"cubic-bezier(.2,.8,.2,1)" });
+  stampAnim.kind = q.kind;
+  stampAnim.onfinish = stampAnim.oncancel = nextStamp;
+  hurry();
+}
+
+/* ---------- the line under the dial ---------- */
+var callMsg = "", callUntil = 0, callT = null;
+function say(html, ms){
+  callMsg = html; callUntil = performance.now() + ms;
+  clearTimeout(callT);
+  callT = setTimeout(renderCall, ms + 20);
+  renderCall();
+}
+function renderCall(){
+  var html = "", chasing = false;
+  if (performance.now() < callUntil) html = callMsg;
+  else if (runCount && !runBestFired && runPrevBest >= 1){
+    var gap = runPrevBest + 1 - runRevs;           /* beating it means passing it */
+    if (gap >= 1 && gap <= 3){
+      chasing = true;
+      html = gap === 1 ? "<b>One more</b> beats your best" : "<b>" + gap + "</b> to beat your best";
+    }
+  }
+  hud.classList.toggle("chase", chasing);
+  if (shCall.innerHTML === html) return;
+  shCall.innerHTML = html;
+  if (html && shCall.animate && !reduce)
+    shCall.animate([{ opacity:0, transform:"translateY(5px)" }, { opacity:1, transform:"none" }],
+                   { duration:260, easing:"ease-out" });
+}
+
+/* ---------- who is on the board ---------- */
+function myBoardBest(){
+  if (!BOARD || !BOARD.board) return 0;
+  for (var i = 0; i < BOARD.board.length; i++)
+    if (BOARD.board[i].email === BOARD.you) return BOARD.board[i].best || 0;
+  return 0;
+}
+function others(){
+  if (!BOARD || !BOARD.board) return [];
+  return BOARD.board.filter(function(r){ return r.email !== BOARD.you && (r.best || 0) >= 1; });
+}
+function loadBoardQuiet(){
+  var t = tokenGet();
+  if (!t) return;
+  fetch(AUTH_API + "/spin", { headers:{ Authorization:"Bearer " + t }, cache:"no-store" })
+    .then(function(x){ return x.ok ? x.json() : null; })
+    .then(function(j){ if (j && j.board) BOARD = j; })
+    .catch(function(){});
+}
+/* returns true when the run has just taken the top spot */
+function checkRivals(r){
+  var passed = [];
+  while (rivalIdx < rivals.length && r > rivals[rivalIdx].best) passed.push(rivals[rivalIdx++]);
+  if (!passed.length) return false;
+  var all = others(), rank = 1;
+  for (var i = 0; i < all.length; i++) if (all[i].best >= r) rank++;
+  var who = passed.length === 1 ? esc(passed[0].name)
+          : passed.length === 2 ? esc(passed[0].name) + " &amp; " + esc(passed[1].name)
+          : passed.length + " people";
+  if (rank === 1){
+    say("You passed " + who + "<br><b>#1 on the board</b>", 2800);
+    stamp("#1", "top");
+    return true;
+  }
+  say("You passed <b>" + who + "</b><br>now #" + rank, 2200);
+  return false;
+}
+
+/* ---------- every revolution after the release lands here ---------- */
+function onRev(r){
+  var big = false;
+  setHeat(r);
+  var t = tierOf(r);
+  hud.setAttribute("data-tier", t);
+  if (t > runTier){
+    runTier = t;
+    shK.textContent = RANKS[t - 1].name;
+    shK.classList.add("ranked");
+    stamp(RANKS[t - 1].name, "rank");
+    big = true;
+  }
+  popRev(t);
+  if (!runBestFired && runPrevBest >= 1 && r > runPrevBest){
+    runBestFired = true;
+    hud.classList.add("pb");
+    stamp("New best", "best");
+    say("<b>New personal best</b>", 2400);
+    big = true;
+  }
+  if (runBestFired) shBest.textContent = r;      /* the best climbs live with the count */
+  if (checkRivals(r)) big = true;
+  if (t >= 1 || big) pageFlash(big);
+  renderCall();
 }
 
 function runAdd(d){
@@ -1230,9 +1543,10 @@ function runAdd(d){
   runDeg += d;
   var t = Math.abs(runDeg) / 360, r = Math.floor(t);
   if (r !== runRevs){
-    if (r > runRevs) popRev();
+    var from = runRevs;
     runRevs = r;
     hudN(r);
+    for (var q = from + 1; q <= r; q++) onRev(q);
   }
   hudArc(t - r);
 }
@@ -1240,8 +1554,14 @@ function runAdd(d){
 function startRun(){
   if (runOn) endRun();        /* a second grab is a new attempt, not more of this one */
   runOn = true; runCount = false; runDeg = 0; runRevs = 0;
-  hudN(0); hudArc(0);
-  hud.classList.remove("pb");
+  runTier = 0; runBestFired = false;
+  hud.setAttribute("data-tier", 0);
+  hudN(0); hudArc(0); setHeat(0);
+  stampQ = [];
+  if (stampAnim && stampAnim.finish) try { stampAnim.finish(); } catch (e) {}
+  shK.textContent = "Revolutions"; shK.classList.remove("ranked");
+  callUntil = 0; renderCall();
+  hud.classList.remove("pb", "chase");
   hud.classList.add("live", "winding");
   shFoot.innerHTML = "Let go<br>to count";
 }
@@ -1249,25 +1569,44 @@ function startRun(){
 function armRun(){
   if (!runOn || runCount) return;
   runCount = true;
+  /* what this throw is up against: your best, and whoever is ahead of you */
+  var mine = myBoardBest();
+  runPrevBest = Math.max(bestRevs, mine);
+  rivals = others().filter(function(o){ return o.best >= mine; })
+                   .sort(function(a, b){ return a.best - b.best; });
+  rivalIdx = 0;
   hud.classList.remove("winding");
   hudArc(0);
   shFoot.innerHTML = "Counting";
+  renderCall();
 }
 function endRun(){
   if (!runOn) return;
   runOn = false; runCount = false;
-  hud.classList.remove("live", "winding");
-  var r = runRevs;
+  hud.classList.remove("live", "winding", "chase");
+  setHeat(0);                 /* and the dial cools, slowly - see --heat's transition */
+  var r = runRevs, short = runPrevBest - r;
   shLast.textContent = r;
-  shFoot.innerHTML = r ? (r === 1 ? "One revolution" : r + " revolutions")
-                       : "Give it a<br>proper fling";
+  callUntil = 0;
+  if (runBestFired) shFoot.innerHTML = "New best &middot; " + r;
+  else if (r && runPrevBest >= 1 && short === 0) shFoot.innerHTML = "Tied your best";
+  else {
+    shFoot.innerHTML = r ? (r === 1 ? "One revolution" : r + " revolutions")
+                         : "Give it a<br>proper fling";
+    /* a near miss is the thing that makes people throw again */
+    if (r && runPrevBest >= 1 && short >= 1 && short <= 2)
+      say("<b>" + short + " short</b> of your best", 5000);
+  }
+  renderCall();
   if (r > bestRevs){
     bestRevs = r;
     shBest.textContent = r;
     hud.classList.add("pb");
+    try { localStorage.setItem(BKEY, r); } catch (e) {}
+  }
+  if (hud.classList.contains("pb")){
     clearTimeout(pbT);
     pbT = setTimeout(function(){ hud.classList.remove("pb"); }, 4000);
-    try { localStorage.setItem(BKEY, r); } catch (e) {}
   }
   if (r >= 1) submitSpin(r);
 }
@@ -1676,6 +2015,7 @@ document.getElementById("signOut").addEventListener("click", signOut);
       document.getElementById("greeting").hidden = false;
       document.getElementById("who").hidden = false;
       hideGate();
+      loadBoardQuiet();
     });
   });
 })();
