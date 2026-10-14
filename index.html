@@ -255,6 +255,8 @@ a{color:inherit;text-decoration:none}
   text-shadow:0 0 18px rgba(225,236,249,.85),0 0 44px rgba(176,196,222,.6);
   opacity:0;pointer-events:none;transform:translateX(-50%)}
 .sh-stamp.best,.sh-stamp.top{font-size:26px}
+.sh-stamp.choke{font-size:16px;letter-spacing:.04em;color:var(--accent);
+  text-shadow:0 0 14px rgba(176,196,222,.45)}
 
 /* chasing your best: the number cannot sit still */
 .spinhud.chase .sh-nw{animation:tremble .14s linear infinite}
@@ -335,6 +337,19 @@ a{color:inherit;text-decoration:none}
   white-space:nowrap;padding:0;transition:color .2s ease}
 .lbx-reset:hover{color:var(--ink-2)}
 .lbx-reset.armed{color:#D98A8A}
+
+/* ---------- twenty in a row ---------- */
+.calls-pop{position:fixed;inset:0;z-index:130;display:grid;place-items:center;padding:24px;
+  background:rgba(4,5,8,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.calls-pop[hidden]{display:none}
+.calls-card{max-width:420px;padding:32px 34px 26px;text-align:center}
+.calls-card h2{margin:0;font-family:var(--f-display);font-weight:700;font-size:21px;
+  line-height:1.25;color:var(--ink);letter-spacing:-.005em}
+.calls-card p{margin:10px 0 24px;font-size:15px;color:var(--accent)}
+.calls-ok{background:rgba(176,196,222,.12);border:1px solid rgba(176,196,222,.45);
+  border-radius:999px;padding:8px 26px;cursor:pointer;font-family:var(--f-body);
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink)}
+.calls-ok:hover{background:rgba(176,196,222,.2)}
 
 /* ---------- sign-in gate ---------- */
 #authGate{
@@ -684,9 +699,19 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
     <div class="lbx-foot">
       <p class="anx-note">A run is one grab. Turning the ring by hand counts for
         nothing &mdash; the score is whatever it turns on its own once you let go,
-        until it settles. Grab it a second time and you have started a new run.</p>
+        until it settles. Grab it a second time and you have started a new run.
+        Avg is per throw of at least one revolution, counted from today; runs
+        reach the board a few at a time, and at once on a new best.</p>
       <button class="lbx-reset" id="lbxReset">Reset my score</button>
     </div>
+  </div>
+</div>
+
+<div id="callsPop" class="calls-pop" role="dialog" aria-modal="true" aria-labelledby="callsT" hidden>
+  <div class="calls-card glass">
+    <h2 id="callsT">You've spun 20 times in a row</h2>
+    <p>... go make some calls</p>
+    <button class="calls-ok" id="callsOk">OK</button>
   </div>
 </div>
 
@@ -1298,14 +1323,15 @@ function hudN(n){
 }
 /* ---------- ranks. The names are the team's. ---------- */
 var RANKS = [
-  { at:5,  name:"Millichumpy" },
-  { at:10, name:"You've hit your Rock" },
-  { at:15, name:"Busty" },
-  { at:20, name:"AI Robust Grow" },
-  { at:25, name:"Vouched" },
-  { at:30, name:"Ari is calling..." }
+  { at:6,  name:"Millichumpy" },
+  { at:11, name:"You've hit your Rock" },
+  { at:16, name:"Busty" },
+  { at:21, name:"AI Robust Grow" },
+  { at:26, name:"Vouched" },
+  { at:31, name:"Ari is calling..." }
 ];
-var HEAT_TOP = 30;           /* revolutions at which the dial is white-hot  */
+var HEAT_TOP = 31;           /* white-hot exactly as the top rank lands     */
+var CHOKE_UNDER = 4;         /* a run that ends under this gets told so     */
 function tierOf(r){ var t = 0; while (t < RANKS.length && r >= RANKS[t].at) t++; return t; }
 
 var shK = document.getElementById("shK"), shCall = document.getElementById("shCall");
@@ -1432,10 +1458,16 @@ function nextStamp(){
   shStamp.textContent = q.text;
   shStamp.className = "sh-stamp " + q.kind;
   shK.style.opacity = "0";
-  var dur = q.kind === "rank" ? 1450 : 1750;
+  var dur = q.kind === "rank" ? 1450 : q.kind === "choke" ? 2200 : 1750;
   if (!shStamp.animate){ setTimeout(nextStamp, dur); stampAnim = { kind:q.kind }; return; }
   stampAnim = shStamp.animate(reduce ? [
       { opacity:0 }, { opacity:1, offset:.15 }, { opacity:1, offset:.75 }, { opacity:0 }
+    ] : q.kind === "choke" ? [
+      /* no slam for this one: it arrives limp and wilts */
+      { opacity:0, transform:"translateX(-50%) translateY(-8px) rotate(0deg)" },
+      { opacity:1, transform:"translateX(-50%) translateY(0) rotate(0deg)", offset:.18 },
+      { opacity:1, transform:"translateX(-50%) translateY(3px) rotate(-3deg)", offset:.7 },
+      { opacity:0, transform:"translateX(-50%) translateY(16px) rotate(-7deg)" }
     ] : [
       { opacity:0, transform:"translateX(-50%) scale(2.6)",  filter:"blur(10px)", letterSpacing:".45em" },
       { opacity:1, transform:"translateX(-50%) scale(1)",    filter:"blur(0px)",  letterSpacing:".06em", offset:.16 },
@@ -1582,6 +1614,7 @@ function armRun(){
 }
 function endRun(){
   if (!runOn) return;
+  var released = runCount;
   runOn = false; runCount = false;
   hud.classList.remove("live", "winding", "chase");
   setHeat(0);                 /* and the dial cools, slowly - see --heat's transition */
@@ -1598,6 +1631,8 @@ function endRun(){
       say("<b>" + short + " short</b> of your best", 5000);
   }
   renderCall();
+  if (released && r < CHOKE_UNDER) stamp("You've Chucky-Choked it...", "choke");
+  var isBest = r >= 1 && r > runPrevBest;
   if (r > bestRevs){
     bestRevs = r;
     shBest.textContent = r;
@@ -1608,8 +1643,36 @@ function endRun(){
     clearTimeout(pbT);
     pbT = setTimeout(function(){ hud.classList.remove("pb"); }, 4000);
   }
-  if (r >= 1) submitSpin(r);
+  if (r >= 1) recordRun(r, isBest);
+  if (released) countStreak();
 }
+
+/* ---------- twenty in a row ----------
+   "In a row" means without stepping away: a gap of more than ninety seconds
+   between throws starts the count again. It resets once it has fired, so a
+   determined player hears it again at forty. */
+var STREAK = 20, STREAK_GAP = 90000, streakN = 0, streakLast = 0;
+var callsPop = document.getElementById("callsPop");
+function countStreak(){
+  var now = Date.now();
+  if (now - streakLast > STREAK_GAP) streakN = 0;
+  streakLast = now;
+  if (++streakN >= STREAK){ streakN = 0; openCalls(); }
+}
+function openCalls(){
+  callsPop.hidden = false;
+  if (callsPop.animate && !reduce)
+    callsPop.firstElementChild.animate(
+      [{ opacity:0, transform:"translateY(10px) scale(.94)" }, { opacity:1, transform:"none" }],
+      { duration:320, easing:"cubic-bezier(.2,.8,.2,1)" });
+  document.getElementById("callsOk").focus();
+}
+function closeCalls(){ callsPop.hidden = true; }
+document.getElementById("callsOk").addEventListener("click", closeCalls);
+callsPop.addEventListener("click", function(e){ if (e.target === callsPop) closeCalls(); });
+document.addEventListener("keydown", function(e){
+  if (e.key === "Escape" && !callsPop.hidden) closeCalls();
+});
 
 /* ---------- the board, behind five taps on the glass ---------- */
 var BOARD = null, tapN = 0, tapT = null;
@@ -1633,23 +1696,54 @@ function centreTap(){
 }
 resetZone.addEventListener("click", centreTap);
 
-function submitSpin(r){
-  var t = tokenGet();
-  if (!t) return;
-  fetch(AUTH_API + "/spin", {
-    method:"POST",
-    headers:{ Authorization:"Bearer " + t, "Content-Type":"application/json" },
-    body:JSON.stringify({ revs:r })
-  }).then(function(x){ return x.ok ? x.json() : null; })
-    .then(function(j){ if (j && j.board) BOARD = j; })
-    .catch(function(){});
+/* ---------- sending runs: a few at a time, never one write per throw ----------
+   The free KV tier allows 1,000 writes a day across every tool on the
+   Worker, and posting each throw used them all on the game's first day.
+   Runs wait here and go up together: straight away on a new best, so the
+   board and everyone's callouts stay current; otherwise every ten runs,
+   two minutes after the last throw, or the moment the tab is hidden. */
+var pend = { runs:0, sum:0, best:0 }, flushT = null;
+function recordRun(r, isBest){
+  pend.runs++; pend.sum += r;
+  if (r > pend.best) pend.best = r;
+  clearTimeout(flushT);
+  if (isBest || pend.runs >= 10) flushSpins();
+  else flushT = setTimeout(flushSpins, 120000);
 }
+function flushSpins(leaving){
+  clearTimeout(flushT);
+  var t = tokenGet();
+  if (!pend.runs || !t) return Promise.resolve(null);
+  var batch = pend;
+  pend = { runs:0, sum:0, best:0 };
+  return fetch(AUTH_API + "/spin", {
+    method:"POST", keepalive:!!leaving,
+    headers:{ Authorization:"Bearer " + t, "Content-Type":"application/json" },
+    body:JSON.stringify(batch)
+  }).then(function(x){ return x.ok ? x.json() : Promise.reject(x.status); })
+    .then(function(j){ if (j && j.board) BOARD = j; return j; })
+    .catch(function(){
+      /* nothing is lost: they go up with the next batch */
+      pend.runs += batch.runs; pend.sum += batch.sum;
+      if (batch.best > pend.best) pend.best = batch.best;
+      flushT = setTimeout(flushSpins, 120000);
+      return null;
+    });
+}
+document.addEventListener("visibilitychange", function(){
+  if (document.visibilityState === "hidden") flushSpins(true);
+});
+window.addEventListener("pagehide", function(){ flushSpins(true); });
 
 function openBoard(){
   lbx.classList.add("open");
   renderBoard(BOARD);
   var t = tokenGet();
   if (!t) return;
+  if (pend.runs){                        /* the POST answers with the board */
+    flushSpins().then(function(j){ renderBoard(j || BOARD); });
+    return;
+  }
   fetch(AUTH_API + "/spin", {
     headers:{ Authorization:"Bearer " + t }, cache:"no-store"
   }).then(function(x){ return x.ok ? x.json() : null; })
@@ -1681,6 +1775,7 @@ resetBtn.addEventListener("click", function(){
   disarmReset();
   resetBtn.textContent = "Clearing\u2026";
   bestRevs = 0;
+  pend = { runs:0, sum:0, best:0 }; clearTimeout(flushT);
   try { localStorage.removeItem(BKEY); } catch (e) {}
   shBest.textContent = "\u2014";
   shLast.textContent = "\u2014";
@@ -1717,7 +1812,7 @@ function renderBoard(j){
   }
   var you = (j && j.you) || "";
   var h = '<table><thead><tr><th class="rk"></th><th>Who</th>' +
-          '<th class="num">Best</th><th class="num">Runs</th></tr></thead><tbody>';
+          '<th class="num">Best</th><th class="num">Avg</th><th class="num">Runs</th></tr></thead><tbody>';
   for (var i = 0; i < rows.length; i++){
     var r = rows[i], cls = [];
     if (r.email === you) cls.push("me");
@@ -1726,6 +1821,7 @@ function renderBoard(j){
          '<td class="rk">' + (i + 1) + '</td>' +
          '<td class="nm">' + esc(r.name || String(r.email).split("@")[0]) + '</td>' +
          '<td class="num">' + (r.best || 0) + '</td>' +
+         '<td class="num">' + (r.avg != null ? Number(r.avg).toFixed(1) : "\u2014") + '</td>' +
          '<td class="num">' + (r.runs || 0) + '</td></tr>';
   }
   body.innerHTML = h + '</tbody></table>';
