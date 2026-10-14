@@ -247,6 +247,13 @@ a{color:inherit;text-decoration:none}
 .lbx-card tr.me td.nm{color:var(--accent-hot)}
 .lbx-card tr.gold td.rk{color:var(--accent-hot)}
 .lbx-empty{padding:26px 10px;color:var(--ink-3);font-size:13px;line-height:1.6}
+.lbx-foot{display:flex;align-items:baseline;gap:16px;margin-top:4px}
+.lbx-foot .anx-note{flex:1;margin:0}
+.lbx-reset{background:none;border:0;cursor:pointer;font-family:var(--f-body);
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
+  white-space:nowrap;padding:0;transition:color .2s ease}
+.lbx-reset:hover{color:var(--ink-2)}
+.lbx-reset.armed{color:#D98A8A}
 
 /* ---------- sign-in gate ---------- */
 #authGate{
@@ -593,9 +600,12 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
       <button class="anx-close" id="lbxClose">Close</button>
     </div>
     <div id="lbxBody"></div>
-    <p class="anx-note">A run is one grab. Turning the ring by hand counts for
-      nothing &mdash; the score is whatever it turns on its own once you let go,
-      until it settles. Grab it a second time and you have started a new run.</p>
+    <div class="lbx-foot">
+      <p class="anx-note">A run is one grab. Turning the ring by hand counts for
+        nothing &mdash; the score is whatever it turns on its own once you let go,
+        until it settles. Grab it a second time and you have started a new run.</p>
+      <button class="lbx-reset" id="lbxReset">Reset my score</button>
+    </div>
   </div>
 </div>
 
@@ -1307,7 +1317,46 @@ function openBoard(){
     .then(function(j){ if (j && j.board){ BOARD = j; renderBoard(j); } else renderBoard(null); })
     .catch(function(){ renderBoard(null); });
 }
-function closeBoard(){ lbx.classList.remove("open"); }
+function closeBoard(){ lbx.classList.remove("open"); disarmReset(); }
+
+/* ---------- starting over ----------
+   Two taps, because it cannot be undone: the first arms it, the second does
+   it. The board lives in the Worker and the best you see lives in this
+   browser, so both have to go. */
+var resetBtn = document.getElementById("lbxReset"), resetArmed = false, resetT = null;
+function disarmReset(){
+  resetArmed = false;
+  clearTimeout(resetT);
+  resetBtn.classList.remove("armed");
+  resetBtn.textContent = "Reset my score";
+}
+resetBtn.addEventListener("click", function(){
+  if (!resetArmed){
+    resetArmed = true;
+    resetBtn.classList.add("armed");
+    resetBtn.textContent = "Sure? This cannot be undone";
+    clearTimeout(resetT);
+    resetT = setTimeout(disarmReset, 5000);
+    return;
+  }
+  disarmReset();
+  resetBtn.textContent = "Clearing\u2026";
+  bestRevs = 0;
+  try { localStorage.removeItem(BKEY); } catch (e) {}
+  shBest.textContent = "\u2014";
+  shLast.textContent = "\u2014";
+  var t = tokenGet();
+  if (!t){ renderBoard(BOARD); disarmReset(); return; }
+  fetch(AUTH_API + "/spin", {
+    method:"DELETE", headers:{ Authorization:"Bearer " + t }
+  }).then(function(x){ return x.ok ? x.json() : null; })
+    .then(function(j){
+      if (j && j.board){ BOARD = j; renderBoard(j); }
+      else renderBoard(null);
+      disarmReset();
+    })
+    .catch(function(){ renderBoard(null); disarmReset(); });
+});
 document.getElementById("lbxClose").addEventListener("click", closeBoard);
 lbx.addEventListener("click", function(e){ if (e.target === lbx) closeBoard(); });
 document.addEventListener("keydown", function(e){
