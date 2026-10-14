@@ -166,6 +166,10 @@ a{color:inherit;text-decoration:none}
   stroke-dasharray:100;        /* the offset is an attribute, written by the
                                   loop - a declaration here would outrank it */
   filter:drop-shadow(0 0 7px rgba(176,196,222,.45))}
+/* while it is still in your hand the ring shows how hard you are winding,
+   and the count is held back */
+.spinhud.winding .sh-arc{stroke:var(--accent-hot);opacity:.5}
+.spinhud.winding .sh-n{opacity:.28}
 .sh-n{
   font-family:var(--f-display);font-weight:600;font-size:40px;line-height:1;
   color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em;
@@ -589,9 +593,9 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
       <button class="anx-close" id="lbxClose">Close</button>
     </div>
     <div id="lbxBody"></div>
-    <p class="anx-note">A run is one grab. Revolutions count from the moment you
-      take hold of a node until the ring settles again &mdash; let go and grab it
-      a second time and you have started a new run.</p>
+    <p class="anx-note">A run is one grab. Turning the ring by hand counts for
+      nothing &mdash; the score is whatever it turns on its own once you let go,
+      until it settles. Grab it a second time and you have started a new run.</p>
   </div>
 </div>
 
@@ -1007,6 +1011,7 @@ function endDrag(){
     cats[dragN.i].g.classList.remove("grabbed");
     dragN = null;
     map.classList.remove("dragging");
+    armRun();
   }
 }
 
@@ -1043,7 +1048,9 @@ function frame(now){
     spinW += (ds / dt - spinW) * (1 - Math.exp(-dt / W_SMOOTH));
     spinW = Math.max(-MAX_W, Math.min(MAX_W, spinW));
     spinA = (spinA % 360 + 360) % 360;
-    runAdd(ds);
+    /* Turning it by hand scores nothing - otherwise circling the cursor for
+       a minute would beat any throw. The ring reads as a wind-up instead. */
+    hudArc(Math.min(1, Math.abs(spinW) / CHARGE_W));
   } else if (!held){
     /* Steady friction, with a little drag on top. The steady part is what
        makes the game honest: how long it runs is set by how hard you threw
@@ -1170,7 +1177,8 @@ requestAnimationFrame(frame);
    Revolutions come off the net turn, so wagging it back and forth cancels
    out instead of adding up.
    ================================================= */
-var runOn = false, runDeg = 0, runRevs = 0, whirl = false;
+var runOn = false, runCount = false, runDeg = 0, runRevs = 0, whirl = false;
+var CHARGE_W = 2600;         /* deg/s that fills the wind-up ring           */
 var bestRevs = 0, BKEY = "greyhub.spin.best";
 try { bestRevs = parseInt(localStorage.getItem(BKEY), 10) || 0; } catch (e) {}
 
@@ -1208,7 +1216,7 @@ function popRev(){
 }
 
 function runAdd(d){
-  if (!runOn) return;
+  if (!runOn || !runCount) return;   /* only what the throw itself turns */
   runDeg += d;
   var t = Math.abs(runDeg) / 360, r = Math.floor(t);
   if (r !== runRevs){
@@ -1221,16 +1229,24 @@ function runAdd(d){
 
 function startRun(){
   if (runOn) endRun();        /* a second grab is a new attempt, not more of this one */
-  runOn = true; runDeg = 0; runRevs = 0;
+  runOn = true; runCount = false; runDeg = 0; runRevs = 0;
   hudN(0); hudArc(0);
   hud.classList.remove("pb");
-  hud.classList.add("live");
+  hud.classList.add("live", "winding");
+  shFoot.innerHTML = "Let go<br>to count";
+}
+/* the count opens the moment you let go, and the ring is on its own */
+function armRun(){
+  if (!runOn || runCount) return;
+  runCount = true;
+  hud.classList.remove("winding");
+  hudArc(0);
   shFoot.innerHTML = "Counting";
 }
 function endRun(){
   if (!runOn) return;
-  runOn = false;
-  hud.classList.remove("live");
+  runOn = false; runCount = false;
+  hud.classList.remove("live", "winding");
   var r = runRevs;
   shLast.textContent = r;
   shFoot.innerHTML = r ? (r === 1 ? "One revolution" : r + " revolutions")
