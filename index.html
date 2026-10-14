@@ -1322,15 +1322,15 @@ function hudN(n){
   shN.classList.toggle("sm", n > 99);
 }
 /* ---------- ranks. The names are the team's. ---------- */
-var RANKS = [
-  { at:6,  name:"Millichumpy" },
-  { at:11, name:"You've hit your Rock" },
-  { at:16, name:"Busty" },
-  { at:21, name:"AI Robust Grow" },
-  { at:26, name:"Vouched" },
-  { at:31, name:"Ari is calling..." }
+var RANKS = [                /* one every four: anything under the first chokes */
+  { at:4,  name:"Millichumpy" },
+  { at:8,  name:"You've hit your Rock" },
+  { at:12, name:"Busty" },
+  { at:16, name:"AI Robust Grow" },
+  { at:20, name:"Vouched" },
+  { at:24, name:"Ari is calling..." }
 ];
-var HEAT_TOP = 31;           /* white-hot exactly as the top rank lands     */
+var HEAT_TOP = 24;           /* white-hot exactly as the top rank lands     */
 var CHOKE_UNDER = 4;         /* a run that ends under this gets told so     */
 function tierOf(r){ var t = 0; while (t < RANKS.length && r >= RANKS[t].at) t++; return t; }
 
