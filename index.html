@@ -1066,7 +1066,7 @@ map.appendChild(resetZone);
 /* ---------- the slow turn, and the swing into focus ----------
    One category can hold the middle. When it does it grows, its tools ring it,
    and the other five swing around to a small arc on the opposite side. */
-var spinA = 0, skyA = 0, miniA = 0, held = false, last = null, focusIdx = null;
+var spinA = 0, spinD = 0, skyA = 0, miniA = 0, held = false, last = null, focusIdx = null;
 var skyDue = 0, meshDue = 0;
 
 /* ---------- grab, swing, fling ----------
@@ -1081,11 +1081,21 @@ var REST_W = reduce ? 0 : BASE_W;   /* what it settles back to                 *
 var spinW = REST_W;          /* current angular velocity, deg/s                */
 var W_FRIC = 120;           /* deg/s shed every second, whatever the speed    */
 var W_TAU = 2.6;             /* plus drag in proportion to speed, on top of it */
-var MAX_W = 20000;           /* a sanity rail only; a fling is not speed-capped*/
-var W_SMOOTH = .04;          /* seconds of averaging on the release velocity   */
+/* ---- what makes a throw fair ----
+   Nothing about the score may depend on the screen, the computer or the
+   browser. The speed of a throw is read from the mouse's own timestamped
+   samples, never from frames, and the spin-down is solved exactly at the
+   moment of release, so frames only draw what has already been decided. */
+var W_MAX = 7000;            /* soft ceiling on a throw, deg/s: past this, more
+                                speed (or a hotter mouse setting) buys less     */
+var LEVER = 120;             /* device px: closer to the centre than this earns
+                                no extra spin, at any window size or zoom      */
+var VEL_WIN = 60;            /* ms of samples a release is read from            */
 var BLUR_W = 420;            /* deg/s; past here the labels stop being legible */
 var SETTLED = 30;            /* deg/s; above this the ring ignores hover       */
-var END_W = 2.4;             /* deg/s; below this the ring has stopped         */
+var samples = [];            /* {t, a, r}: bearing (deg, unwrapped) and radius
+                                (device px) of every pointer sample            */
+var coast = null;            /* the throw in flight, solved exactly            */
 var DEAD = 28;               /* units; inside this the pointer has no bearing  */
 var dragN = null;            /* {i, mx, my} while actually dragging            */
 var dragPending = null;      /* pointer is down but has not moved far enough   */
@@ -1098,39 +1108,173 @@ function toUnits(cx, cy){
   return [ (cx - (r.left + r.width / 2)) * sc, (cy - (r.top + r.height / 2)) * sc ];
 }
 
+/* A script calling dispatchEvent makes untrusted events; only a real hand on
+   a real mouse may throw. */
+function real(e){ return e.isTrusted !== false; }
+
+/* does the straight line between two samples pass through the dead centre? */
+function crossesCentre(x1, y1, x2, y2){
+  var dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy;
+  var k = L ? Math.max(0, Math.min(1, -(x1 * dx + y1 * dy) / L)) : 0;
+  var px = x1 + k * dx, py = y1 + k * dy;
+  return px * px + py * py < DEAD * DEAD;
+}
+
+/* One pointer sample, with its bearing unwrapped against the last.
+   Samples are normally a millisecond or so apart, but a starved page in a
+   browser that cannot hand over the mouse's full history may see them a
+   frame or more apart - over half a turn at a hard throw. Taking the
+   shortest way round would then read a fast throw as a slow backward one,
+   so the step chosen is the one that best continues the motion so far.
+   Only a line that really crosses the centre has no honest direction; the
+   samples start again from there. The picture's bearing, uaVis, is never
+   reset mid-drag, so the ring cannot spin through stray turns on screen. */
+var uaVis = null, uaRaw = null;
+function addSample(t, cx, cy){
+  var u = toUnits(cx, cy), rr = Math.sqrt(u[0] * u[0] + u[1] * u[1]);
+  if (rr < DEAD){ samples.length = 0; return; }
+  var raw = Math.atan2(u[1], u[0]) * 180 / Math.PI;
+  var prev = samples[samples.length - 1], p2 = samples[samples.length - 2];
+  var step = prev ? ((raw - prev.raw + 540) % 360) - 180 : 0;
+  if (prev && p2 && prev.t > p2.t){
+    var pred = (prev.a - p2.a) / (prev.t - p2.t) * (t - prev.t);
+    step += 360 * Math.round((pred - step) / 360);
+  }
+  if (prev && crossesCentre(prev.x, prev.y, u[0], u[1])){ samples.length = 0; prev = null; }
+  var box = map.getBoundingClientRect();
+  samples.push({ t:t, a: prev ? prev.a + step : raw, raw:raw, x:u[0], y:u[1],
+                 r: rr * (box.width ? box.width / 1040 : 1) * (window.devicePixelRatio || 1) });
+  while (samples.length > 3 && t - samples[1].t > 300) samples.shift();
+
+  if (uaVis === null) uaVis = raw;
+  else uaVis += prev ? step : ((raw - uaRaw + 540) % 360) - 180;
+  uaRaw = raw;
+}
+
+/* The speed of a throw at time t: a least-squares slope through the samples
+   in the VEL_WIN ms before it. That reads the same at 60 or 240 Hz, from a
+   125 Hz mouse or a 1000 Hz one, and however busy the computer is. If the
+   pointer has stopped, no samples arrive, so a stationary one is added at t
+   to say so. Then the two fairness rules: no extra leverage inside LEVER,
+   and a soft ceiling at W_MAX. */
+function throwOmega(t){
+  var pts = [], rsum = 0, i, last = null;
+  for (i = samples.length - 1; i >= 0; i--){
+    var sm = samples[i];
+    if (sm.t > t + 1) continue;
+    if (!last) last = sm;
+    if (t - sm.t > VEL_WIN && pts.length >= 3) break;
+    if (t - sm.t > VEL_WIN * 2.5) break;            /* thin input: widen a little, no more */
+    pts.push(sm); rsum += sm.r;
+  }
+  if (!last || t - last.t > 120) return 0;           /* let go long after stopping */
+  if (t - last.t > 10) pts.unshift({ t:t, a:last.a, r:last.r });
+  if (pts.length < 2) return 0;
+  var n = pts.length, mt = 0, ma = 0, num = 0, den = 0;
+  for (i = 0; i < n; i++){ mt += pts[i].t; ma += pts[i].a; }
+  mt /= n; ma /= n;
+  for (i = 0; i < n; i++){
+    var dx = pts[i].t - mt;
+    num += dx * (pts[i].a - ma); den += dx * dx;
+  }
+  if (den === 0 || (pts[0].t - pts[n - 1].t) < 8) return 0;
+  var w = num / den * 1000;                          /* deg per second */
+  w *= Math.min(1, (rsum / pts.length) / LEVER);
+  return W_MAX * Math.tanh(w / W_MAX);
+}
+
+/* ---- the spin-down, solved rather than stepped ----
+   Friction W_FRIC plus drag v/W_TAU gives v(t) = (v0 + F.tau)e^(-t/tau) - F.tau,
+   which stops at tStop. Integrating that gives the angle at any moment, so the
+   whole throw - and its score - is known the instant it leaves the hand. */
+var FT = W_FRIC * W_TAU;
+function coastAt(c, t){
+  t = Math.min(t, c.tStop);
+  return c.s * (W_TAU * (c.v0 + FT) * (1 - Math.exp(-t / W_TAU)) - FT * t);
+}
+function coastW(c, t){
+  return t >= c.tStop ? REST_W : REST_W + c.s * ((c.v0 + FT) * Math.exp(-t / W_TAU) - FT);
+}
+function launch(w){
+  var v = w - REST_W;
+  coast = { t0: performance.now(), a0: spinD, s: v < 0 ? -1 : 1, v0: Math.abs(v) };
+  coast.tStop = W_TAU * Math.log(1 + coast.v0 / FT);
+  coast.total = coastAt(coast, coast.tStop);
+  return coast;
+}
+/* the most any throw can score - the Worker holds the board to the same */
+var SPIN_CEILING = Math.floor((W_TAU * (W_MAX - REST_W + FT) * (1 - Math.exp(-Math.log(1 + (W_MAX - REST_W) / FT))) -
+                               FT * W_TAU * Math.log(1 + (W_MAX - REST_W) / FT)) / 360);
+
+/* a throw finishes when it stops, or early - focus, a hidden tab - with the
+   score it was always going to have */
+function finishCoast(){
+  if (!coast) return;
+  var c = coast;
+  coast = null;
+  spinD = c.a0 + REST_W * c.tStop + c.total;
+  spinW = REST_W;
+  runSet(c.total);
+  endRun();
+}
+/* grabbing it mid-flight keeps only what it has turned so far */
+function abortCoast(){
+  if (!coast) return;
+  var c = coast, tc = (performance.now() - c.t0) / 1000;
+  coast = null;
+  spinD = c.a0 + REST_W * tc + coastAt(c, tc);
+  spinW = REST_W;
+  runSet(coastAt(c, tc));
+}
+
 function startDrag(i, e, el){
+  if (!real(e)) return;
   if (e.button !== undefined && e.button !== 0) return;
   suppressClick = false;        /* a fresh press; the last drag is done with */
   dragPending = { i:i, sx:e.clientX, sy:e.clientY, el:el, id:e.pointerId };
   try { el.setPointerCapture(e.pointerId); } catch (err) {}
 }
 function moveDrag(e){
-  if (!dragPending) return;
+  if (!dragPending || !real(e)) return;
   if (!dragN){
     var dx = e.clientX - dragPending.sx, dy = e.clientY - dragPending.sy;
     if (Math.sqrt(dx * dx + dy * dy) < 5) return;   /* still a click, not a drag */
     clearTimeout(closeT);
     letGo();
-    dragN = { i:dragPending.i };
+    abortCoast();                 /* caught mid-flight: that throw ends here */
+    dragN = { i:dragPending.i, ua:null, off:0 };
+    samples.length = 0; uaVis = null; uaRaw = null;
     suppressClick = true;
     startRun();
     map.classList.add("dragging");
     cats[dragN.i].g.classList.add("grabbed");
   }
-  var u = toUnits(e.clientX, e.clientY);
-  dragN.mx = u[0]; dragN.my = u[1];
+  /* every sample the mouse reported since the last frame, not just the last */
+  var evs = (e.getCoalescedEvents && e.getCoalescedEvents()) || [];
+  if (!evs.length) evs = [e];
+  for (var k = 0; k < evs.length; k++) addSample(evs[k].timeStamp, evs[k].clientX, evs[k].clientY);
+
+  /* the ring's picture follows the same unwrapped bearing */
+  if (uaVis !== null){
+    if (dragN.ua === null) dragN.off = 360 * Math.round((spinD - (uaVis - cats[dragN.i].theta)) / 360);
+    dragN.ua = uaVis;
+  }
   e.preventDefault();
 }
-function endDrag(){
+function endDrag(e){
+  if (e && !real(e)) return;
   if (dragPending && dragPending.el){
     try { dragPending.el.releasePointerCapture(dragPending.id); } catch (err) {}
   }
   dragPending = null;
   if (dragN){
+    var t = e && e.timeStamp ? e.timeStamp : performance.now();
+    if (e && e.clientX !== undefined) addSample(t, e.clientX, e.clientY);
     cats[dragN.i].g.classList.remove("grabbed");
     dragN = null;
     map.classList.remove("dragging");
-    armRun();
+    var c = launch(throwOmega(t));
+    armRun(Math.floor(Math.abs(c.total) / 360));
   }
 }
 
@@ -1154,39 +1298,32 @@ function frame(now){
   var kSlow = 1 - Math.exp(-dt / .26);   /* categories */
 
   if (dragN){
-    var p0s = spinA;
-    /* turn the ring so the held node sits under the pointer's bearing */
-    if (dragN.mx * dragN.mx + dragN.my * dragN.my > DEAD * DEAD){
-      var want = Math.atan2(dragN.my, dragN.mx) * 180 / Math.PI - cats[dragN.i].theta;
-      var d = ((want - spinA + 540) % 360) - 180;
-      spinA += d * (1 - Math.exp(-dt / .02));   /* lag ~= tau * drag speed */
+    /* the held node follows the pointer's bearing; this is only the picture */
+    if (dragN.ua !== null){
+      var want = dragN.ua - cats[dragN.i].theta + dragN.off;
+      spinD += (want - spinD) * (1 - Math.exp(-dt / .02));
     }
-    var ds = ((spinA - p0s + 540) % 360) - 180;
-    /* A single frame is a noisy thing to read a fling off, and a flick that
-       lands on a slow frame would be thrown away. Average over about three. */
-    spinW += (ds / dt - spinW) * (1 - Math.exp(-dt / W_SMOOTH));
-    spinW = Math.max(-MAX_W, Math.min(MAX_W, spinW));
-    spinA = (spinA % 360 + 360) % 360;
     /* Turning it by hand scores nothing - otherwise circling the cursor for
-       a minute would beat any throw. The ring reads as a wind-up instead. */
-    hudArc(Math.min(1, Math.abs(spinW) / CHARGE_W));
-  } else if (!held){
-    /* Steady friction, with a little drag on top. The steady part is what
-       makes the game honest: how long it runs is set by how hard you threw
-       it, so a nudge is over in a second or two and a real fling goes on
-       turning for the better part of ten. Pure exponential decay would take
-       the same time either way. */
-    var v = spinW - REST_W;
-    if (v){
-      var dec = (W_FRIC + Math.abs(v) / W_TAU) * dt;
-      v = Math.abs(v) <= dec ? 0 : v - (v < 0 ? -dec : dec);
+       a minute would beat any throw. The dial shows what letting go now would
+       throw, measured exactly as the release will be. */
+    spinW = throwOmega(performance.now());
+    hudArc(Math.min(1, Math.abs(spinW) / W_MAX));
+  } else if (coast){
+    /* Steady friction, with a little drag on top: how long it runs is set by
+       how hard you threw it. Read off the wall clock, so a stalled or
+       throttled page draws the same throw, just less smoothly. */
+    var tc = Math.max(0, (now - coast.t0) / 1000);
+    if (held || tc >= coast.tStop) finishCoast();
+    else {
+      spinD = coast.a0 + REST_W * tc + coastAt(coast, tc);
+      spinW = coastW(coast, tc);
+      runSet(coastAt(coast, tc));
     }
-    spinW = REST_W + v;
-    var dc = spinW * dt;
-    spinA = (spinA + dc) % 360;
-    runAdd(dc);
+  } else if (!held){
+    spinW = REST_W;
+    spinD += REST_W * dt;
   }
-  if (runOn && !dragN && (held || Math.abs(spinW) < END_W)) endRun();
+  spinA = ((spinD % 360) + 360) % 360;
 
   var wh = Math.abs(spinW) > BLUR_W;
   if (wh !== whirl){ whirl = wh; map.classList.toggle("whirl", wh); }
@@ -1297,7 +1434,7 @@ requestAnimationFrame(frame);
    out instead of adding up.
    ================================================= */
 var runOn = false, runCount = false, runDeg = 0, runRevs = 0, whirl = false;
-var CHARGE_W = 2600;         /* deg/s that fills the wind-up ring           */
+var runPotential = 0;        /* what the throw was worth when it left the hand */
 var bestRevs = 0, BKEY = "greyhub.spin.best";
 try { bestRevs = parseInt(localStorage.getItem(BKEY), 10) || 0; } catch (e) {}
 
@@ -1570,9 +1707,9 @@ function onRev(r){
   renderCall();
 }
 
-function runAdd(d){
+function runSet(deg){
   if (!runOn || !runCount) return;   /* only what the throw itself turns */
-  runDeg += d;
+  runDeg = deg;
   var t = Math.abs(runDeg) / 360, r = Math.floor(t);
   if (r !== runRevs){
     var from = runRevs;
@@ -1598,9 +1735,10 @@ function startRun(){
   shFoot.innerHTML = "Let go<br>to count";
 }
 /* the count opens the moment you let go, and the ring is on its own */
-function armRun(){
+function armRun(potential){
   if (!runOn || runCount) return;
   runCount = true;
+  runPotential = potential || 0;
   /* what this throw is up against: your best, and whoever is ahead of you */
   var mine = myBoardBest();
   runPrevBest = Math.max(bestRevs, mine);
@@ -1643,7 +1781,7 @@ function endRun(){
     clearTimeout(pbT);
     pbT = setTimeout(function(){ hud.classList.remove("pb"); }, 4000);
   }
-  if (r >= 1) recordRun(r, isBest);
+  if (released && runPotential >= 1) recordRun(r, isBest);
   if (released) countStreak();
 }
 
@@ -1731,9 +1869,9 @@ function flushSpins(leaving){
     });
 }
 document.addEventListener("visibilitychange", function(){
-  if (document.visibilityState === "hidden") flushSpins(true);
+  if (document.visibilityState === "hidden"){ finishCoast(); flushSpins(true); }
 });
-window.addEventListener("pagehide", function(){ flushSpins(true); });
+window.addEventListener("pagehide", function(){ finishCoast(); flushSpins(true); });
 
 function openBoard(){
   lbx.classList.add("open");
