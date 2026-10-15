@@ -1080,7 +1080,9 @@ var BASE_W = 360 / SPIN;     /* the resting drift, deg/s                       *
 var REST_W = reduce ? 0 : BASE_W;   /* what it settles back to                 */
 var spinW = REST_W;          /* current angular velocity, deg/s                */
 var W_FRIC = 120;           /* deg/s shed every second, whatever the speed    */
-var W_TAU = 2.6;             /* plus drag in proportion to speed, on top of it */
+var W_TAU = 1.75;            /* plus drag in proportion to speed, on top of it.
+                                Tuned so a world-class throw lands near 28, the
+                                record before throws were measured exactly      */
 /* ---- what makes a throw fair ----
    Nothing about the score may depend on the screen, the computer or the
    browser. The speed of a throw is read from the mouse's own timestamped
