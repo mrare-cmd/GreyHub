@@ -2286,13 +2286,14 @@ var LEGACY_PBS8 = ["dashboard","map_draw","rent_roll","rent_tiers","search_apply
 function siteOf(action){
   if (action.indexOf("pbs8:") === 0) return "pbs8";
   if (action.indexOf("loanid:") === 0) return "loanid";
+  if (action.indexOf("topa:") === 0) return "topa";
   if (action.indexOf("greyhub:") === 0) return "greyhub";
   if (action.indexOf("load:") === 0 || action.indexOf("download:") === 0) return "pbs8";
   if (LEGACY_PBS8.indexOf(action) > -1) return "pbs8";
   return null;                       /* bare "signin" is shared across all three */
 }
 
-var SITE_LABEL = { pbs8:"PBS8", loanid:"LoanID", greyhub:"GreyHub" };
+var SITE_LABEL = { pbs8:"PBS8", loanid:"LoanID", topa:"TOPA", greyhub:"GreyHub" };
 
 function titleish(t){
   return String(t).split("-").map(function(w){
@@ -2383,12 +2384,12 @@ function loadAnalytics(){
 
 function renderAnalytics(j){
   var rows = j.rows || [];
-  var sites = { pbs8:{ n:0, users:{} }, loanid:{ n:0, users:{} }, greyhub:{ n:0, users:{} } };
+  var sites = { pbs8:{ n:0, users:{} }, loanid:{ n:0, users:{} }, topa:{ n:0, users:{} }, greyhub:{ n:0, users:{} } };
   var tools = {};        /* greyhub:click:<slug> -> {n, users:{}} */
   var people = [];
 
   rows.forEach(function(r){
-    var per = { pbs8:0, loanid:0, greyhub:0, shared:0 };
+    var per = { pbs8:0, loanid:0, topa:0, greyhub:0, shared:0 };
     Object.keys(r.actions || {}).forEach(function(a){
       var n = r.actions[a], site = siteOf(a);
       if (site){
@@ -2406,12 +2407,12 @@ function renderAnalytics(j){
       }
     });
     people.push({ email:r.email, last:r.last, lastAction:r.lastAction, per:per,
-                  total:per.pbs8 + per.loanid + per.greyhub });
+                  total:per.pbs8 + per.loanid + per.topa + per.greyhub });
   });
   people.sort(function(a, b){ return (b.last || "").localeCompare(a.last || ""); });
 
   var h = '<div class="anx-tiles">';
-  [["pbs8","PBS8 Database"],["loanid","LoanID"],["greyhub","GreyHub"]].forEach(function(pair){
+  [["pbs8","PBS8 Database"],["loanid","LoanID"],["topa","TOPA Tracker"],["greyhub","GreyHub"]].forEach(function(pair){
     var k = pair[0], S = sites[k], u = Object.keys(S.users).length;
     h += '<div class="anx-tile"><div class="k">' + esc(pair[1]) + '</div>' +
          '<div class="v">' + u + '</div>' +
@@ -2421,15 +2422,16 @@ function renderAnalytics(j){
   h += '</div>';
 
   h += '<h3>Who used what</h3><table><thead><tr><th>Person</th>' +
-       '<th style="text-align:right">PBS8</th><th style="text-align:right">LoanID</th>' +
+       '<th style="text-align:right">PBS8</th><th style="text-align:right">LoanID</th><th style="text-align:right">TOPA</th>' +
        '<th style="text-align:right">GreyHub</th><th>Last seen</th></tr></thead><tbody>';
   if (!people.length){
-    h += '<tr><td colspan="5" class="anx-empty">Nothing recorded in this window.</td></tr>';
+    h += '<tr><td colspan="6" class="anx-empty">Nothing recorded in this window.</td></tr>';
   }
   people.forEach(function(p){
     h += '<tr><td class="nm">' + esc(p.email) + '</td>' +
          '<td class="num' + (p.per.pbs8 ? "" : " zero") + '">' + p.per.pbs8 + '</td>' +
          '<td class="num' + (p.per.loanid ? "" : " zero") + '">' + p.per.loanid + '</td>' +
+         '<td class="num' + (p.per.topa ? "" : " zero") + '">' + p.per.topa + '</td>' +
          '<td class="num' + (p.per.greyhub ? "" : " zero") + '">' + p.per.greyhub + '</td>' +
          '<td class="when">' + esc(shortDate(p.last)) +
            '<span class="what">' + (p.lastAction ? esc(prettyAction(p.lastAction)) : "\u00A0") + '</span>' +
@@ -2453,7 +2455,7 @@ function renderAnalytics(j){
 
   h += '<p class="anx-note">Counts are per person per day and the Worker collapses ' +
        'the same action within 60 seconds, so these are activity levels rather than ' +
-       'exact click totals. Bare <code>signin</code> events are shared by all three ' +
+       'exact click totals. Bare <code>signin</code> events are shared by every ' +
        'sites and are left out of the per-site columns. What someone was last doing ' +
        'is only recorded from the Worker deploy onward, so older rows show a time ' +
        'with nothing under it.</p>';
