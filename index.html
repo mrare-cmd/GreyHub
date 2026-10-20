@@ -1003,7 +1003,13 @@ CATEGORIES.forEach(function(cat, i){
     var s = {
       hold:hold, bead:bd, glow:glow,
       miniBase:(360 / n) * j - 90,  /* where it sits in its little orbit          */
-      ringA:-90 + j * (360 / n),    /* where it swings to once its parent is up    */
+      /* Once its parent is up, a tool swings out to a fan on the far side of
+         it from the centre. It used to go to a fixed compass point instead,
+         and with four tools one of them always pointed back at the middle -
+         17 units from it, under the reset zone, where hovering it let go of
+         focus and it could never be clicked. Fanned outward, none comes
+         nearer the centre than about 200 units, for any number of tools. */
+      fan: n < 2 ? 0 : (j - (n - 1) / 2) * Math.min(72, 230 / (n - 1)),
       t:0, rNow:MINI_R, hovered:false, w:{}
     };
     state.sats.push(s);
@@ -1058,8 +1064,9 @@ CATEGORIES.forEach(function(cat, i){
 }  /* end buildMap */
 
 /* the middle of the map is the way out of focus. It goes in last so it sits on
-   top of every catchment; the tools never come within 180 units of centre, so
-   it cannot be hit by accident on the way to one. */
+   top of every catchment. The tools fan out away from the centre and never come
+   within about 200 units of it, so it cannot be hit by accident on the way to
+   one - keep it that way if TOOL_ORBIT, R_FOCUS or the fan change. */
 var resetZone = el("circle", { class:"resetzone", cx:0, cy:0, r:R_RESET });
 map.appendChild(resetZone);
 
@@ -1406,7 +1413,7 @@ function frame(now){
       /* Both ends are offsets from the parent, so a tool always orbits its own
          category — tight at rest, wide once that category has been promoted. */
       var ri = pol(R_MINI, s2.miniBase + miniA);
-      var ro = pol(TOOL_ORBIT, s2.ringA + spinA);
+      var ro = pol(TOOL_ORBIT, c.curA + s2.fan);
       var x = cp[0] + ri[0] + (ro[0] - ri[0]) * e;
       var y = cp[1] + ri[1] + (ro[1] - ri[1]) * e;
       putStr(s2.hold, s2.w, "ht", "transform",
