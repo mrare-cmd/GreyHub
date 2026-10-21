@@ -143,6 +143,18 @@ a{color:inherit;text-decoration:none}
 .anx-empty{padding:26px 10px;color:var(--ink-3);font-size:13px}
 .anx-note{margin:18px 0 0;font-size:11.5px;line-height:1.6;color:var(--ink-3)}
 
+/* who is on the tools right now */
+.anx-online{display:flex;flex-wrap:wrap;gap:8px;padding:16px 0 6px}
+.anx-chip{display:inline-flex;align-items:center;gap:9px;padding:6px 13px 6px 11px;
+  border:1px solid var(--glass-line);border-radius:999px;background:rgba(255,255,255,.035);
+  font-size:12.5px;color:var(--ink)}
+.anx-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--accent-hot);
+  box-shadow:0 0 9px rgba(225,236,249,.75);animation:livedot 2.2s ease-in-out infinite}
+.anx-chip .where{color:var(--ink-3);font-size:11px;letter-spacing:.04em}
+@keyframes livedot{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){ .anx-chip .dot{animation:none} }
+.anx-quiet{padding:16px 0 4px;color:var(--ink-3);font-size:13px}
+
 /* ---------- the spin game: a counter, and a board behind five clicks ----------
    The counter keeps its own column beside the map so it never sits on top of
    a node. At rest it is barely there; it lights up for the length of a run. */
@@ -2343,7 +2355,7 @@ function openAnalytics(){
   renderRange();
   loadAnalytics();
 }
-function closeAnalytics(){ anx.classList.remove("open"); }
+function closeAnalytics(){ anx.classList.remove("open"); clearInterval(presT); }
 document.getElementById("anxClose").addEventListener("click", closeAnalytics);
 anx.addEventListener("click", function(e){ if (e.target === anx) closeAnalytics(); });
 
@@ -2359,8 +2371,86 @@ function renderRange(){
   });
 }
 
+/* ---------- presence: who is on now, and active time ----------
+   Every site behind this sign-in checks in about once a minute while it is
+   open, visible and in use. /presence turns that into who is online now
+   and active minutes per person, and it refreshes while the panel is open. */
+var PRES_LABEL = { greyhub:"GreyHub", pbs8:"PBS8", loanid:"LoanID", topa:"TOPA", owner360:"Owner 360" };
+var PRES_ORDER = ["pbs8", "loanid", "topa", "owner360", "greyhub"];
+var presT = null;
+function loadPresence(){
+  return fetch(AUTH_API + "/presence?days=" + anxDays, {
+    headers:{ Authorization:"Bearer " + tokenGet() }, cache:"no-store"
+  }).then(function(r){ return r.ok ? r.json() : null; })
+    .catch(function(){ return null; });
+}
+function fmtMins(m){
+  m = m || 0;
+  if (m < 60) return m + "m";
+  var mm = m % 60;
+  return Math.floor(m / 60) + "h " + (mm < 10 ? "0" : "") + mm + "m";
+}
+function agoText(ms){
+  var s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  return s < 75 ? "now" : Math.round(s / 60) + " min ago";
+}
+function onlineHtml(p){
+  var h = '<h3>Online now</h3>';
+  if (!p || !p.configured)
+    return h + '<p class="anx-quiet">Presence is not available.</p>';
+  if (!p.online.length)
+    return h + '<p class="anx-quiet">Nobody is on the tools right now.</p>';
+  h += '<div class="anx-online">';
+  p.online.forEach(function(o){
+    var where = o.sites.slice().sort(function(a, b){ return PRES_ORDER.indexOf(a) - PRES_ORDER.indexOf(b); })
+                 .map(function(k){ return PRES_LABEL[k] || k; }).join(", ");
+    h += '<span class="anx-chip" title="' + esc(o.email) + '"><span class="dot"></span>' +
+         esc(String(o.email).split("@")[0]) +
+         '<span class="where">' + esc(where) + ' \u00B7 ' + agoText(o.last) + '</span></span>';
+  });
+  return h + '</div>';
+}
+function activeHtml(p){
+  if (!p || !p.configured) return "";
+  var h = '<h3>Active time</h3><table><thead><tr><th>Person</th>' +
+          '<th style="text-align:right">Today</th><th style="text-align:right">7 days</th>' +
+          '<th style="text-align:right">' + p.days + ' days</th>';
+  PRES_ORDER.forEach(function(k){ h += '<th style="text-align:right">' + esc(PRES_LABEL[k]) + '</th>'; });
+  h += '<th style="text-align:right">Days</th><th>Last active</th></tr></thead><tbody>';
+  if (!p.people.length){
+    h += '<tr><td colspan="' + (6 + PRES_ORDER.length) + '" class="anx-empty">' +
+         'No active time recorded yet. It starts as people open the tools.</td></tr>';
+  }
+  p.people.forEach(function(x){
+    h += '<tr><td class="nm">' + esc(x.email) + '</td>' +
+         '<td class="num' + (x.today ? "" : " zero") + '">' + fmtMins(x.today) + '</td>' +
+         '<td class="num' + (x.week ? "" : " zero") + '">' + fmtMins(x.week) + '</td>' +
+         '<td class="num">' + fmtMins(x.total) + '</td>';
+    PRES_ORDER.forEach(function(k){
+      var v = (x.sites && x.sites[k]) || 0;
+      h += '<td class="num' + (v ? "" : " zero") + '">' + fmtMins(v) + '</td>';
+    });
+    h += '<td class="num">' + x.days + '</td>' +
+         '<td class="when">' + esc(shortDate(new Date(x.last).toISOString())) + '</td></tr>';
+  });
+  return h + '</tbody></table>';
+}
+/* while the panel is open, keep the presence sections current */
+function startPresenceRefresh(){
+  clearInterval(presT);
+  presT = setInterval(function(){
+    if (!anx.classList.contains("open")) { clearInterval(presT); return; }
+    loadPresence().then(function(p){
+      var on = document.getElementById("anxOnline"), act = document.getElementById("anxActive");
+      if (p && on) on.innerHTML = onlineHtml(p);
+      if (p && act) act.innerHTML = activeHtml(p);
+    });
+  }, 30000);
+}
+
 function loadAnalytics(){
   var body = document.getElementById("anxBody");
+  var presence = loadPresence();
   fetch(AUTH_API + "/usage?days=" + anxDays, {
     headers:{ Authorization:"Bearer " + tokenGet() }, cache:"no-store"
   }).then(function(r){
@@ -2382,14 +2472,17 @@ function loadAnalytics(){
         res.status + ').</p>';
       return;
     }
-    renderAnalytics(res.j);
+    return presence.then(function(p){
+      renderAnalytics(res.j, p);
+      startPresenceRefresh();
+    });
   }).catch(function(err){
     body.innerHTML = '<p class="anx-empty">Could not load analytics: ' +
       esc(err.message) + '</p>';
   });
 }
 
-function renderAnalytics(j){
+function renderAnalytics(j, presence){
   var rows = j.rows || [];
   var sites = { pbs8:{ n:0, users:{} }, loanid:{ n:0, users:{} }, topa:{ n:0, users:{} }, greyhub:{ n:0, users:{} } };
   var tools = {};        /* greyhub:click:<slug> -> {n, users:{}} */
@@ -2418,7 +2511,8 @@ function renderAnalytics(j){
   });
   people.sort(function(a, b){ return (b.last || "").localeCompare(a.last || ""); });
 
-  var h = '<div class="anx-tiles">';
+  var h = '<div id="anxOnline">' + onlineHtml(presence) + '</div>';
+  h += '<div class="anx-tiles">';
   [["pbs8","PBS8 Database"],["loanid","LoanID"],["topa","TOPA Tracker"],["greyhub","GreyHub"]].forEach(function(pair){
     var k = pair[0], S = sites[k], u = Object.keys(S.users).length;
     h += '<div class="anx-tile"><div class="k">' + esc(pair[1]) + '</div>' +
@@ -2446,6 +2540,8 @@ function renderAnalytics(j){
   });
   h += '</tbody></table>';
 
+  h += '<div id="anxActive">' + activeHtml(presence) + '</div>';
+
   var toolKeys = Object.keys(tools).sort(function(a, b){ return tools[b].n - tools[a].n; });
   h += '<h3>Links opened from GreyHub</h3><table><thead><tr><th>Tool</th>' +
        '<th style="text-align:right">Opens</th><th style="text-align:right">People</th>' +
@@ -2465,7 +2561,10 @@ function renderAnalytics(j){
        'exact click totals. Bare <code>signin</code> events are shared by every ' +
        'sites and are left out of the per-site columns. What someone was last doing ' +
        'is only recorded from the Worker deploy onward, so older rows show a time ' +
-       'with nothing under it.</p>';
+       'with nothing under it. Active time counts a minute whenever a tool is open, ' +
+       'visible and in use - a hidden tab or five minutes without the mouse or ' +
+       'keyboard stops the clock - and two tools open at once count once in a ' +
+       'person\u2019s total. It is recorded from 21 October 2026.</p>';
 
   document.getElementById("anxBody").innerHTML = h;
   document.getElementById("anxSub").textContent =
@@ -2489,4 +2588,38 @@ document.addEventListener("keydown", function(e){
     dir.querySelector("summary").focus();
   }
 });
+</script>
+<script>
+/* ---- presence: who is on the tools right now, and for how long ----
+   While this page is visible and someone has used the mouse or keyboard in
+   the last five minutes, it checks in with the sign-in Worker about once a
+   minute. Nothing is sent from a hidden tab, a locked screen or an idle page,
+   or before sign-in. Admins see the result in GreyHub's analytics. The same
+   block is on every site behind this sign-in; only SITE differs. */
+(function(){
+  var SITE = "greyhub";
+  var API = "https://hap-update.mrareshide.workers.dev";
+  var IDLE = 5 * 60 * 1000, EVERY = 60 * 1000;
+  var lastInput = Date.now(), lastSent = 0, refused = null;
+  ["pointermove", "pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach(function(t){
+    window.addEventListener(t, function(){ lastInput = Date.now(); }, { passive:true, capture:true });
+  });
+  function checkIn(){
+    if (document.visibilityState !== "visible") return;
+    var now = Date.now();
+    if (now - lastInput > IDLE || now - lastSent < EVERY - 5000) return;
+    var t = null;
+    try { t = localStorage.getItem("hap_session"); } catch (e) {}
+    if (!t || t === refused) return;           /* signed out, or this token has expired */
+    lastSent = now;
+    fetch(API + "/presence", {
+      method:"POST", keepalive:true,
+      headers:{ Authorization:"Bearer " + t, "Content-Type":"application/json" },
+      body:JSON.stringify({ site:SITE })
+    }).then(function(r){ if (r.status === 401) refused = t; }).catch(function(){});
+  }
+  setInterval(checkIn, 15000);
+  document.addEventListener("visibilitychange", checkIn);
+  setTimeout(checkIn, 4000);
+})();
 </script>
