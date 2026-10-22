@@ -417,6 +417,23 @@ a{color:inherit;text-decoration:none}
 .mast-right{display:flex;align-items:center;gap:20px}
 .count{font-size:11.5px;letter-spacing:.1em;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
+/* ---------- your tools: the three you use most, one click each ---------- */
+.mytools{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px 10px;margin-top:12px}
+.mytools[hidden]{display:none}
+.mt-k{font-family:var(--f-display);font-weight:600;font-size:9px;letter-spacing:.26em;
+  text-transform:uppercase;color:var(--ink-3);margin-right:2px}
+.mt-list{display:contents}
+.mt-chip{display:inline-flex;align-items:baseline;gap:8px;padding:6px 14px;
+  border:1px solid var(--glass-line);border-radius:999px;background:rgba(255,255,255,.04);
+  color:var(--ink);text-decoration:none;font-size:13px;
+  transition:border-color .2s ease,background .2s ease,transform .2s ease}
+.mt-chip:hover,.mt-chip:focus-visible{border-color:rgba(176,196,222,.5);background:rgba(176,196,222,.1);
+  transform:translateY(-1px);outline:none}
+.mt-chip .c{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+/* the row costs the map about 40px of height, so the map gives it back */
+:root.has-mytools{--stage:min(1040px,calc(100vw - 300px),calc(100vh - 236px))}
+@media (max-width:1000px){ :root.has-mytools{--stage:min(1040px,90vw,calc(100vh - 280px))} }
+
 /* ---------- greeting: sits above the network and stays there ---------- */
 .greeting{position:relative;z-index:3;text-align:center;padding-block:16px 2px}
 .greeting h1{
@@ -764,6 +781,9 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
 
 <section class="greeting wrap" id="greeting" hidden>
   <h1><span id="greetHi"></span> <span class="g-name" id="greetName"></span></h1>
+  <nav class="mytools" id="myTools" aria-label="Your tools" hidden>
+    <span class="mt-k">Your tools</span><span class="mt-list" id="myToolsList"></span>
+  </nav>
 </section>
 
 <section class="mapsec wrap" aria-label="Tool network">
@@ -1263,6 +1283,7 @@ function moveDrag(e){
     clearTimeout(closeT);
     letGo();
     abortCoast();                 /* caught mid-flight: that throw ends here */
+    turnTo = null;                /* a hand on the ring beats the welcome turn */
     dragN = { i:dragPending.i, ua:null, off:0 };
     samples.length = 0; uaVis = null; uaRaw = null;
     suppressClick = true;
@@ -1342,7 +1363,12 @@ function frame(now){
     }
   } else if (!held){
     spinW = REST_W;
-    spinD += REST_W * dt;
+    if (turnTo){                         /* gliding your most-used category to the top */
+      var kt = Math.min(1, (now - turnTo.t0) / turnTo.dur);
+      var et = kt < .5 ? 2 * kt * kt : 1 - Math.pow(-2 * kt + 2, 2) / 2;
+      spinD = turnTo.from + (turnTo.to - turnTo.from) * et + REST_W * (now - turnTo.t0) / 1000;
+      if (kt >= 1) turnTo = null;
+    } else spinD += REST_W * dt;
   }
   spinA = ((spinD % 360) + 360) % 360;
 
@@ -1990,6 +2016,7 @@ function renderBoard(j){
 var hint = document.getElementById("hint");
 function activate(i){
   if (dragN) return;              /* holding one node should not promote another */
+  turnTo = null;
   if (Math.abs(spinW - REST_W) > SETTLED) return;   /* let a fling finish first */
   clearTimeout(closeT);
   held = true;
@@ -2221,6 +2248,81 @@ function loadDirectory(){
 }
 
 /* fire-and-forget usage event; the Worker collapses repeats within a minute */
+/* ---------- your tools first ----------
+   The Worker's /me/usage returns only your own last 30 days: which tools you
+   opened from here, your visits to each, and your active minutes on each.
+   The three you use most become shortcuts under the greeting, and the ring
+   turns so the category you lean on most settles at the top. Someone with no
+   history sees neither. */
+var turnTo = null;
+var SITE_BY_URL = [[/HAP-Database/i, "pbs8"], [/greysteel-hampton-roads/i, "loanid"],
+                   [/greysteel-topa/i, "topa"], [/greysteel-owner360/i, "owner360"]];
+function siteOfUrl(u){
+  for (var i = 0; i < SITE_BY_URL.length; i++) if (SITE_BY_URL[i][0].test(u || "")) return SITE_BY_URL[i][1];
+  return null;
+}
+function rankMyTools(j){
+  var visits = {};
+  Object.keys(j.actions || {}).forEach(function(a){
+    var site = a.split(":")[0];
+    if (site === "greyhub" || a === "signin" || /:signin$/.test(a)) return;
+    visits[site] = (visits[site] || 0) + j.actions[a];
+  });
+  var out = [];
+  CATEGORIES.forEach(function(cat, ci){
+    cat.tools.forEach(function(tool){
+      if (!tool.url) return;
+      var site = siteOfUrl(tool.url);
+      var opens = (j.actions || {})["greyhub:click:" + slug(tool.name)] || 0;
+      /* an open from here counts most; a visit, then minutes, fill in for the
+         tools people reach straight from a bookmark */
+      var score = opens * 5 + (site ? (visits[site] || 0) * 2 + ((j.minutes || {})[site] || 0) : 0);
+      if (score >= 5) out.push({ tool:tool, cat:cat.name, ci:ci, score:score });
+    });
+  });
+  return out.sort(function(a, b){ return b.score - a.score; });
+}
+function showMyTools(ranked){
+  var list = document.getElementById("myToolsList"), nav = document.getElementById("myTools");
+  list.innerHTML = "";
+  ranked.slice(0, 3).forEach(function(r){
+    var a = document.createElement("a");
+    a.className = "mt-chip";
+    a.href = r.tool.url; a.target = "_blank"; a.rel = "noopener";
+    a.appendChild(document.createTextNode(r.tool.name));
+    var c = document.createElement("span"); c.className = "c"; c.textContent = r.cat;
+    a.appendChild(c);
+    a.addEventListener("click", function(){ track("greyhub:click:" + slug(r.tool.name)); });
+    list.appendChild(a);
+  });
+  nav.hidden = !ranked.length;
+  document.documentElement.classList.toggle("has-mytools", !!ranked.length);
+}
+function turnToward(ci){
+  if (dragN || coast || focusIdx !== null || !STEP) return;
+  var want = -ci * STEP;                          /* theta of category ci is -90 + ci*STEP */
+  var to = spinD + ((((want - spinD) % 360) + 540) % 360 - 180);
+  if (Math.abs(to - spinD) < 1) return;
+  if (reduce){ spinD = to; return; }
+  turnTo = { from:spinD, to:to, t0:performance.now(), dur:1400 };
+}
+function loadMyTools(){
+  var t = tokenGet();
+  if (!t) return;
+  fetch(AUTH_API + "/me/usage?days=30", { headers:{ Authorization:"Bearer " + t }, cache:"no-store" })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      if (!j || !j.ok) return;
+      var ranked = rankMyTools(j);
+      showMyTools(ranked);
+      if (!ranked.length) return;
+      var byCat = {};
+      ranked.forEach(function(r){ byCat[r.ci] = (byCat[r.ci] || 0) + r.score; });
+      var top = Object.keys(byCat).sort(function(a, b){ return byCat[b] - byCat[a]; })[0];
+      turnToward(+top);
+    }).catch(function(){});
+}
+
 function track(name){
   try{
     var t = tokenGet();
@@ -2271,6 +2373,7 @@ document.getElementById("signOut").addEventListener("click", signOut);
       document.getElementById("who").hidden = false;
       hideGate();
       setTimeout(prefetchAnalytics, 2500);   /* so the konami code opens at once */
+      loadMyTools();
       loadBoardQuiet();
     });
   });
