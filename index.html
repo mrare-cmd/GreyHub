@@ -2270,6 +2270,7 @@ document.getElementById("signOut").addEventListener("click", signOut);
       document.getElementById("greeting").hidden = false;
       document.getElementById("who").hidden = false;
       hideGate();
+      setTimeout(prefetchAnalytics, 2500);   /* so the konami code opens at once */
       loadBoardQuiet();
     });
   });
@@ -2350,8 +2351,6 @@ function shortDate(iso){
 
 function openAnalytics(){
   anx.classList.add("open");
-  document.getElementById("anxBody").innerHTML =
-    '<p class="anx-empty">Loading\u2026</p>';
   renderRange();
   loadAnalytics();
 }
@@ -2378,8 +2377,8 @@ function renderRange(){
 var PRES_LABEL = { greyhub:"GreyHub", pbs8:"PBS8", loanid:"LoanID", topa:"TOPA", owner360:"Owner 360" };
 var PRES_ORDER = ["pbs8", "loanid", "topa", "owner360", "greyhub"];
 var presT = null;
-function loadPresence(){
-  return fetch(AUTH_API + "/presence?days=" + anxDays, {
+function loadPresence(days){
+  return fetch(AUTH_API + "/presence?days=" + (days || anxDays), {
     headers:{ Authorization:"Bearer " + tokenGet() }, cache:"no-store"
   }).then(function(r){ return r.ok ? r.json() : null; })
     .catch(function(){ return null; });
@@ -2448,16 +2447,46 @@ function startPresenceRefresh(){
   }, 30000);
 }
 
-function loadAnalytics(){
-  var body = document.getElementById("anxBody");
-  var presence = loadPresence();
-  fetch(AUTH_API + "/usage?days=" + anxDays, {
+/* ---------- preloaded, so the konami code opens it at once ----------
+   A few seconds after GreyHub loads, the report is fetched quietly in the
+   background; opening the panel shows that copy straight away and refreshes
+   it. For anyone not on the admin list the Worker answers 403 before reading
+   anything, and the page stops asking. Held in memory only - it is a list of
+   colleagues' activity, so it is never written to this machine. */
+var anxCache = {}, anxDenied = false;
+function fetchAnalytics(days){
+  var presence = loadPresence(days);
+  return fetch(AUTH_API + "/usage?days=" + days, {
     headers:{ Authorization:"Bearer " + tokenGet() }, cache:"no-store"
   }).then(function(r){
     return r.json().catch(function(){ return null; }).then(function(j){
       return { status:r.status, j:j };
     });
   }).then(function(res){
+    return presence.then(function(p){
+      res.presence = p;
+      if (res.status === 403) anxDenied = true;
+      if (res.j && res.j.ok) anxCache[days] = res;
+      return res;
+    });
+  });
+}
+function prefetchAnalytics(){
+  if (anxDenied || anxCache[anxDays] || !tokenGet()) return;
+  fetchAnalytics(anxDays).catch(function(){});
+}
+
+function loadAnalytics(){
+  var body = document.getElementById("anxBody"), days = anxDays;
+  var cached = anxCache[days];
+  if (cached){
+    renderAnalytics(cached.j, cached.presence);
+    document.getElementById("anxSub").textContent += " \u00B7 updating\u2026";
+  } else {
+    body.innerHTML = '<p class="anx-empty">Loading\u2026</p>';
+  }
+  fetchAnalytics(days).then(function(res){
+    if (days !== anxDays || !anx.classList.contains("open")) return;   /* moved on meanwhile */
     if (res.status === 403){
       body.innerHTML = '<p class="anx-empty">This account is not authorised to view analytics.</p>';
       return;
@@ -2472,11 +2501,10 @@ function loadAnalytics(){
         res.status + ').</p>';
       return;
     }
-    return presence.then(function(p){
-      renderAnalytics(res.j, p);
-      startPresenceRefresh();
-    });
+    renderAnalytics(res.j, res.presence);
+    startPresenceRefresh();
   }).catch(function(err){
+    if (cached) return;                  /* keep showing the preloaded copy */
     body.innerHTML = '<p class="anx-empty">Could not load analytics: ' +
       esc(err.message) + '</p>';
   });
