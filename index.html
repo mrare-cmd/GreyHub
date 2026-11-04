@@ -2256,7 +2256,7 @@ function loadDirectory(){
    history sees neither. */
 var turnTo = null;
 var SITE_BY_URL = [[/HAP-Database/i, "pbs8"], [/greysteel-hampton-roads/i, "loanid"],
-                   [/greysteel-topa/i, "topa"], [/greysteel-owner360/i, "owner360"]];
+                   [/greysteel-topa/i, "topa"], [/greysteel-owner360/i, "owner360"], [/dc-lender-distress/i, "lenderdistress"]];
 function siteOfUrl(u){
   for (var i = 0; i < SITE_BY_URL.length; i++) if (SITE_BY_URL[i][0].test(u || "")) return SITE_BY_URL[i][1];
   return null;
@@ -2477,8 +2477,8 @@ function renderRange(){
    Every site behind this sign-in checks in about once a minute while it is
    open, visible and in use. /presence turns that into who is online now
    and active minutes per person, and it refreshes while the panel is open. */
-var PRES_LABEL = { greyhub:"GreyHub", pbs8:"PBS8", loanid:"LoanID", topa:"TOPA", owner360:"Owner 360" };
-var PRES_ORDER = ["pbs8", "loanid", "topa", "owner360", "greyhub"];
+var PRES_LABEL = { greyhub:"GreyHub", pbs8:"PBS8", loanid:"LoanID", topa:"TOPA", owner360:"Owner 360", lenderdistress:"Lender Distress" };
+var PRES_ORDER = ["pbs8", "loanid", "topa", "owner360", "lenderdistress", "greyhub"];
 var presT = null;
 function loadPresence(days){
   return fetch(AUTH_API + "/presence?days=" + (days || anxDays), {
