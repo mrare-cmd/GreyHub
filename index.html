@@ -110,6 +110,15 @@ a{color:inherit;text-decoration:none}
 .anx-range button:hover{color:var(--ink);border-color:rgba(176,196,222,.4)}
 .anx-range button.on{color:var(--ink);background:rgba(176,196,222,.12);
   border-color:rgba(176,196,222,.45)}
+.anx-me{margin-left:auto;background:none;border:1px solid var(--glass-line);border-radius:999px;
+  padding:5px 12px;cursor:pointer;font-family:var(--f-body);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);display:inline-flex;align-items:center;gap:7px;
+  transition:color .2s ease,border-color .2s ease,background .2s ease}
+.anx-me::before{content:"";width:7px;height:7px;border-radius:50%;border:1px solid currentColor;box-sizing:border-box}
+.anx-me:hover{color:var(--ink);border-color:rgba(176,196,222,.4)}
+.anx-me[aria-pressed="true"]{color:var(--ink);background:rgba(176,196,222,.12);border-color:rgba(176,196,222,.45)}
+.anx-me[aria-pressed="true"]::before{background:currentColor}
+.anx-me + .anx-range{margin-left:0}
 .anx-close{background:none;border:0;cursor:pointer;font-family:var(--f-body);
   font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3)}
 .anx-close:hover{color:var(--accent)}
@@ -784,6 +793,8 @@ a.row:hover .end{color:var(--accent);transform:translateX(3px)}
     <div class="anx-head">
       <h2>Analytics</h2>
       <span class="sub" id="anxSub"></span>
+      <button class="anx-me" id="anxMe" type="button" aria-pressed="false"
+        title="Leave your own activity out of every number">Exclude me</button>
       <span class="anx-range" id="anxRange"></span>
       <button class="anx-close" id="anxClose">Close</button>
     </div>
@@ -2678,6 +2689,47 @@ function loadAnalytics(){
    refresh because they live here, not in the DOM. */
 var anxLast = null, anxSort = { key:"minutes", dir:-1 }, anxOpenRows = {};
 
+/* "Exclude me": the viewer's own activity left out of every number. Remembered
+   on this browser only; the data itself is untouched. */
+var anxHideMe = false;
+try { anxHideMe = localStorage.getItem("greyhub.anxHideMe") === "1"; } catch (e) {}
+function myEmail(){ return String((AUTH && AUTH.email) || "").toLowerCase(); }
+function syncMeButton(){
+  var b = document.getElementById("anxMe");
+  b.setAttribute("aria-pressed", anxHideMe ? "true" : "false");
+  b.textContent = anxHideMe ? "Excluding me" : "Exclude me";
+  b.hidden = !myEmail();
+}
+document.getElementById("anxMe").addEventListener("click", function(){
+  anxHideMe = !anxHideMe;
+  try { localStorage.setItem("greyhub.anxHideMe", anxHideMe ? "1" : "0"); } catch (e) {}
+  syncMeButton();
+  if (anxLast) renderAnalytics(anxLast.j, anxLast.p);
+});
+/* the report and presence with one person taken out, daily figures included */
+function withoutPerson(j, presence, me){
+  var rows = (j.rows || []).filter(function(u){ return String(u.email).toLowerCase() !== me; });
+  var byDay = j.byDay;
+  if (rows.every(function(u){ return u.dl; })){
+    byDay = {};
+    rows.forEach(function(u){ u.dl.forEach(function(d){ byDay[d] = (byDay[d] || 0) + 1; }); });
+  }
+  var j2 = Object.assign({}, j, { rows:rows, byDay:byDay });
+  if (!presence || !presence.configured) return { j:j2, p:presence };
+  var keep = function(x){ return String(x.email).toLowerCase() !== me; };
+  var people = (presence.people || []).filter(keep), pb = presence.byDay;
+  var mine = (presence.people || []).filter(function(x){ return !keep(x); })[0];
+  if (pb && mine){
+    pb = JSON.parse(JSON.stringify(pb));
+    Object.keys(mine.dm || {}).forEach(function(d){
+      if (!pb[d]) return;
+      pb[d].minutes -= mine.dm[d]; pb[d].people -= 1;
+      if (pb[d].people <= 0) delete pb[d];
+    });
+  }
+  return { j:j2, p:Object.assign({}, presence, { online:(presence.online || []).filter(keep), people:people, byDay:pb }) };
+}
+
 /* what an action is, for counting. Sign-ins and the spin game are not use
    of a tool; a GreyHub link click is an open of the tool it points to. */
 function actionKind(a){
@@ -2836,6 +2888,9 @@ function chartHtml(P, j){
 
 function renderAnalytics(j, presence){
   anxLast = { j:j, p:presence };
+  syncMeButton();
+  var me = myEmail();
+  if (anxHideMe && me){ var w = withoutPerson(j, presence, me); j = w.j; presence = w.p; }
   var P = presence && presence.configured ? presence : null;
   var rows = j.rows || [];
   var tools = buildToolRows(rows, P), people = sortPeople(buildPeople(rows, P));
@@ -2955,7 +3010,8 @@ function renderAnalytics(j, presence){
        '<b>Days</b><span>Midnight to midnight UTC (8pm Eastern).</span></div>';
 
   document.getElementById("anxBody").innerHTML = h;
-  document.getElementById("anxSub").textContent = humans.length + " people \u00B7 " + span;
+  document.getElementById("anxSub").textContent = humans.length + " people \u00B7 " + span +
+    (anxHideMe && me ? " \u00B7 excluding you" : "");
   wireAnalytics();
 }
 
