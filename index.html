@@ -141,6 +141,80 @@ a{color:inherit;text-decoration:none}
 .anx td.when{color:var(--ink-3);font-size:12px;white-space:nowrap}
 .anx td.when .what{display:block;margin-top:3px;color:var(--ink-2);font-size:11.5px}
 .anx-empty{padding:26px 10px;color:var(--ink-3);font-size:13px}
+
+/* ---------- usage overhaul: headline totals, a daily chart, two tables ---------- */
+.ux-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:20px 0 4px}
+.ux-kpi{padding:15px 17px 14px;border:1px solid var(--glass-line);border-radius:14px;background:rgba(255,255,255,.03)}
+.ux-kpi .k{font-family:var(--f-display);font-weight:600;font-size:9.5px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ink-3)}
+.ux-kpi .v{font-family:var(--f-display);font-weight:600;font-size:27px;line-height:1;margin-top:9px;
+  color:var(--ink);font-variant-numeric:tabular-nums}
+.ux-kpi .n{font-size:11.5px;color:var(--ink-3);margin-top:6px}
+.ux-kpi.live .v::after{content:"";display:inline-block;width:7px;height:7px;margin-left:9px;border-radius:50%;
+  vertical-align:middle;background:var(--accent-hot);box-shadow:0 0 9px rgba(225,236,249,.75)}
+
+.ux-sec{display:flex;align-items:baseline;gap:12px;margin:30px 0 0;padding-bottom:11px;
+  border-bottom:1px solid var(--glass-line)}
+.ux-sec h3{margin:0;padding:0;border:0;font-family:var(--f-display);font-weight:600;font-size:10px;
+  letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2)}
+.ux-sec .hint{font-size:11.5px;color:var(--ink-3)}
+
+/* the daily chart: one series, so one hue and no legend; the bars are columns
+   so each day is a hover target the full height of the plot */
+.ux-chart{position:relative;margin-top:14px}
+.ux-plot{position:relative;height:132px;display:flex;align-items:flex-end;gap:2px;
+  border-bottom:1px solid rgba(255,255,255,.14)}
+.ux-grid{position:absolute;left:0;right:0;border-top:1px dashed rgba(255,255,255,.07);pointer-events:none}
+.ux-grid span{position:absolute;right:0;top:-15px;font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ux-col{flex:1 1 0;min-width:2px;height:100%;display:flex;align-items:flex-end;cursor:default}
+.ux-bar{width:100%;background:var(--accent);border-radius:3px 3px 0 0;opacity:.82;min-height:0}
+.ux-col:hover .ux-bar{opacity:1;background:var(--accent-hot)}
+.ux-col.zero .ux-bar{background:transparent}
+.ux-x{display:flex;justify-content:space-between;margin-top:7px;font-size:10.5px;color:var(--ink-3);
+  font-variant-numeric:tabular-nums}
+.ux-tip{position:absolute;z-index:3;pointer-events:none;padding:8px 11px;border-radius:9px;
+  background:rgba(14,17,24,.96);border:1px solid var(--glass-line);font-size:12px;color:var(--ink);
+  white-space:nowrap;transform:translate(-50%,-100%);opacity:0;transition:opacity .12s ease}
+.ux-tip b{font-weight:600}.ux-tip .m{color:var(--ink-3)}
+
+.ux-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:2px}
+.ux-table th{text-align:right;font-family:var(--f-display);font-weight:500;font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.06);
+  white-space:nowrap;user-select:none}
+.ux-table th:first-child,.ux-table td:first-child{text-align:left}
+.ux-table th.l,.ux-table td.l{text-align:left}
+.ux-table th[data-sort]{cursor:pointer}
+.ux-table th[data-sort]:hover{color:var(--ink-2)}
+.ux-table th.on{color:var(--ink)}
+.ux-table th.on::after{content:" \2193";color:var(--accent)}
+.ux-table th.on.asc::after{content:" \2191"}
+.ux-table td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.045);color:var(--ink-2);
+  text-align:right;font-variant-numeric:tabular-nums}
+.ux-table td.nm{color:var(--ink);font-weight:500}
+.ux-table td.nm .sub{display:block;font-weight:400;font-size:11px;color:var(--ink-3);margin-top:2px}
+.ux-table td.z{color:#3A4049}
+.ux-table tbody tr:hover td{background:rgba(176,196,222,.045)}
+.ux-table tr.person{cursor:pointer}
+.ux-table tr.person td.nm::before{content:"\25B8";display:inline-block;width:14px;color:var(--ink-3);
+  transition:transform .15s ease}
+.ux-table tr.person.open td.nm::before{transform:rotate(90deg);color:var(--accent)}
+.ux-table tr.total td{border-top:1px solid rgba(255,255,255,.18);border-bottom:0;color:var(--ink);
+  font-weight:600;background:rgba(255,255,255,.025)}
+.ux-share{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.ux-share i{display:block;height:6px;border-radius:3px;background:var(--accent);opacity:.8}
+.ux-share span{min-width:34px;text-align:right}
+.ux-detail td{padding:4px 10px 14px 34px;background:rgba(176,196,222,.03);text-align:left}
+.ux-mini{display:grid;grid-template-columns:minmax(120px,max-content) 1fr auto auto;gap:6px 14px;
+  align-items:center;font-size:12.5px;max-width:640px}
+.ux-mini .t{color:var(--ink-2)}
+.ux-mini .b{height:5px;border-radius:3px;background:var(--accent);opacity:.75}
+.ux-mini .v{color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.ux-mini .a{color:var(--ink-3);text-align:right;font-variant-numeric:tabular-nums}
+.ux-last{color:var(--ink-3);font-size:12px;white-space:nowrap;text-align:left}
+.ux-last .what{display:block;color:var(--ink-2);font-size:11.5px;margin-top:2px}
+.ux-defs{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:22px 0 0;
+  font-size:11.5px;line-height:1.55;color:var(--ink-3)}
+.ux-defs b{color:var(--ink-2);font-weight:600}
 .anx-note{margin:18px 0 0;font-size:11.5px;line-height:1.6;color:var(--ink-3)}
 
 /* who is on the tools right now */
@@ -2387,7 +2461,7 @@ document.getElementById("signOut").addEventListener("click", signOut);
 var ANX_SEQ = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown",
                "ArrowLeft","ArrowRight","ArrowLeft","ArrowRight",
                "KeyB","KeyA","Enter"];
-var anxBuf = [], anxDays = 90;
+var anxBuf = [], anxDays = 30;
 var anx = document.getElementById("anx");
 
 document.addEventListener("keydown", function(e){
@@ -2406,17 +2480,26 @@ document.addEventListener("keydown", function(e){
    namespaced still has to land somewhere sensible, hence the legacy list. */
 var LEGACY_PBS8 = ["dashboard","map_draw","rent_roll","rent_tiers","search_apply",
                    "export_page","search_save","update"];
+/* every tracked tool, in the order the panel lists them; the id is both the
+   prefix its actions are logged under and its presence site */
+var TRACKED = [
+  { id:"pbs8", name:"PBS8 Database" }, { id:"loanid", name:"LoanID" },
+  { id:"topa", name:"TOPA Tracker" },  { id:"owner360", name:"Owner 360" },
+  { id:"lenderdistress", name:"DC Lender Distress" }, { id:"greyhub", name:"GreyHub" }
+];
+var TRACKED_ID = {};
+TRACKED.forEach(function(t){ TRACKED_ID[t.id] = t; });
 function siteOf(action){
-  if (action.indexOf("pbs8:") === 0) return "pbs8";
-  if (action.indexOf("loanid:") === 0) return "loanid";
-  if (action.indexOf("topa:") === 0) return "topa";
-  if (action.indexOf("greyhub:") === 0) return "greyhub";
+  var i = action.indexOf(":");
+  if (i > 0 && TRACKED_ID[action.slice(0, i)]) return action.slice(0, i);
+  if (action.indexOf("view:") === 0) return "pbs8";        /* PBS8's map / table toggle */
   if (action.indexOf("load:") === 0 || action.indexOf("download:") === 0) return "pbs8";
   if (LEGACY_PBS8.indexOf(action) > -1) return "pbs8";
   return null;                       /* bare "signin" is shared across all three */
 }
 
-var SITE_LABEL = { pbs8:"PBS8", loanid:"LoanID", topa:"TOPA", greyhub:"GreyHub" };
+var SITE_LABEL = { pbs8:"PBS8", loanid:"LoanID", topa:"TOPA", owner360:"Owner 360",
+                   lenderdistress:"Lender Distress", greyhub:"GreyHub" };
 
 function titleish(t){
   return String(t).split("-").map(function(w){
@@ -2464,7 +2547,7 @@ anx.addEventListener("click", function(e){ if (e.target === anx) closeAnalytics(
 function renderRange(){
   var wrap = document.getElementById("anxRange");
   wrap.innerHTML = "";
-  [30, 90, 400].forEach(function(d){
+  [7, 30, 90, 400].forEach(function(d){
     var b = document.createElement("button");
     b.textContent = d === 400 ? "All" : d + "d";
     if (d === anxDays) b.className = "on";
@@ -2512,40 +2595,13 @@ function onlineHtml(p){
   });
   return h + '</div>';
 }
-function activeHtml(p){
-  if (!p || !p.configured) return "";
-  var h = '<h3>Active time</h3><table><thead><tr><th>Person</th>' +
-          '<th style="text-align:right">Today</th><th style="text-align:right">7 days</th>' +
-          '<th style="text-align:right">' + p.days + ' days</th>';
-  PRES_ORDER.forEach(function(k){ h += '<th style="text-align:right">' + esc(PRES_LABEL[k]) + '</th>'; });
-  h += '<th style="text-align:right">Days</th><th>Last active</th></tr></thead><tbody>';
-  if (!p.people.length){
-    h += '<tr><td colspan="' + (6 + PRES_ORDER.length) + '" class="anx-empty">' +
-         'No active time recorded yet. It starts as people open the tools.</td></tr>';
-  }
-  p.people.forEach(function(x){
-    h += '<tr><td class="nm">' + esc(x.email) + '</td>' +
-         '<td class="num' + (x.today ? "" : " zero") + '">' + fmtMins(x.today) + '</td>' +
-         '<td class="num' + (x.week ? "" : " zero") + '">' + fmtMins(x.week) + '</td>' +
-         '<td class="num">' + fmtMins(x.total) + '</td>';
-    PRES_ORDER.forEach(function(k){
-      var v = (x.sites && x.sites[k]) || 0;
-      h += '<td class="num' + (v ? "" : " zero") + '">' + fmtMins(v) + '</td>';
-    });
-    h += '<td class="num">' + x.days + '</td>' +
-         '<td class="when">' + esc(shortDate(new Date(x.last).toISOString())) + '</td></tr>';
-  });
-  return h + '</tbody></table>';
-}
 /* while the panel is open, keep the presence sections current */
 function startPresenceRefresh(){
   clearInterval(presT);
   presT = setInterval(function(){
     if (!anx.classList.contains("open")) { clearInterval(presT); return; }
     loadPresence().then(function(p){
-      var on = document.getElementById("anxOnline"), act = document.getElementById("anxActive");
-      if (p && on) on.innerHTML = onlineHtml(p);
-      if (p && act) act.innerHTML = activeHtml(p);
+      if (p && anxLast && anx.classList.contains("open")) renderAnalytics(anxLast.j, p);
     });
   }, 30000);
 }
@@ -2613,93 +2669,331 @@ function loadAnalytics(){
   });
 }
 
-function renderAnalytics(j, presence){
-  var rows = j.rows || [];
-  var sites = { pbs8:{ n:0, users:{} }, loanid:{ n:0, users:{} }, topa:{ n:0, users:{} }, greyhub:{ n:0, users:{} } };
-  var tools = {};        /* greyhub:click:<slug> -> {n, users:{}} */
-  var people = [];
+/* ================= the usage panel =================
+   One model throughout. ACTIVE TIME is the headline: minutes a tool was open,
+   visible and in use (from the once-a-minute check-ins, since 21 Oct 2026).
+   ACTIONS are the logged events (loads, searches, downloads, edits) - the
+   longer history, and the only measure for tools that do not check in.
+   Every table ends in a totals row. Sort and open rows survive the 30-second
+   refresh because they live here, not in the DOM. */
+var anxLast = null, anxSort = { key:"minutes", dir:-1 }, anxOpenRows = {};
 
-  rows.forEach(function(r){
-    var per = { pbs8:0, loanid:0, topa:0, greyhub:0, shared:0 };
-    Object.keys(r.actions || {}).forEach(function(a){
-      var n = r.actions[a], site = siteOf(a);
-      if (site){
-        per[site] += n;
-        sites[site].n += n;
-        sites[site].users[r.email] = 1;
-      } else {
-        per.shared += n;
-      }
-      if (a.indexOf("greyhub:click:") === 0){
-        var slugName = a.slice("greyhub:click:".length);
-        var t = tools[slugName] || (tools[slugName] = { n:0, users:{} });
-        t.n += n;
-        t.users[r.email] = 1;
-      }
+/* what an action is, for counting. Sign-ins and the spin game are not use
+   of a tool; a GreyHub link click is an open of the tool it points to. */
+function actionKind(a){
+  if (a === "signin" || /:signin$/.test(a) || a === "greyhub:spin") return { kind:"skip" };
+  if (a.indexOf("greyhub:click:") === 0) return { kind:"open", slug:a.slice(14) };
+  var site = siteOf(a);
+  return site ? { kind:"tool", site:site } : { kind:"other" };
+}
+/* identities that are not people - the LoanID Claude connector signs its
+   calls as "claude". Shown, tagged, never counted as a person. */
+function isAuto(email){ return String(email || "").indexOf("@") < 0; }
+function autoName(email){ return email === "claude" ? "Claude connector" : String(email); }
+
+function personName(email){ return String(email || "").split("@")[0]; }
+function pct(n, d){ return d ? Math.round(n / d * 100) : 0; }
+function cell(v, fmt){ return '<td' + (v ? '' : ' class="z"') + '>' + (v ? fmt(v) : (fmt === fmtMins ? "0m" : "0")) + '</td>'; }
+function num(n){ return Number(n || 0).toLocaleString(); }
+function dayLabel(iso){
+  var d = new Date(iso + "T12:00:00Z");
+  return d.toLocaleDateString(undefined, { month:"short", day:"numeric" });
+}
+
+/* tool rows: the tracked tools, then any directory link that does not check in */
+function buildToolRows(rows, P){
+  var bySite = {}, list = [], bySlug = {};
+  TRACKED.forEach(function(t){
+    var r = { name:t.name, site:t.id, people:{}, minutes:0, actions:0, opens:0, tracked:true };
+    bySite[t.id] = r; list.push(r);
+  });
+  /* GreyHub link slugs -> rows, using the directory's real names */
+  CATEGORIES.forEach(function(cat){
+    cat.tools.forEach(function(tool){
+      if (!tool.url) return;
+      var site = siteOfUrl(tool.url), row = site && bySite[site];
+      if (row){ row.name = tool.name; }
+      else { row = { name:tool.name, site:null, people:{}, minutes:0, actions:0, opens:0, tracked:false }; list.push(row); }
+      bySlug[slug(tool.name)] = row;
     });
-    people.push({ email:r.email, last:r.last, lastAction:r.lastAction, per:per,
-                  total:per.pbs8 + per.loanid + per.topa + per.greyhub });
   });
-  people.sort(function(a, b){ return (b.last || "").localeCompare(a.last || ""); });
-
-  var h = '<div id="anxOnline">' + onlineHtml(presence) + '</div>';
-  h += '<div class="anx-tiles">';
-  [["pbs8","PBS8 Database"],["loanid","LoanID"],["topa","TOPA Tracker"],["greyhub","GreyHub"]].forEach(function(pair){
-    var k = pair[0], S = sites[k], u = Object.keys(S.users).length;
-    h += '<div class="anx-tile"><div class="k">' + esc(pair[1]) + '</div>' +
-         '<div class="v">' + u + '</div>' +
-         '<div class="n">' + (u === 1 ? "person" : "people") + ' \u00B7 ' +
-         S.n + ' action' + (S.n === 1 ? "" : "s") + '</div></div>';
+  /* links that were renamed since they were clicked */
+  var ALIAS = { "topa-dashboard":"topa", "priority-dashboard":"loanid", "hap-database":"pbs8",
+                "pbs8-database":"pbs8", "expenses-comp-dashboard":null };
+  var other = null;
+  rows.forEach(function(u){
+    var person = !isAuto(u.email);
+    Object.keys(u.actions || {}).forEach(function(a){
+      var n = u.actions[a], k = actionKind(a), row = null;
+      if (k.kind === "skip") return;
+      if (k.kind === "open"){
+        row = bySlug[k.slug] || (ALIAS[k.slug] && bySite[ALIAS[k.slug]]);
+        if (!row){
+          other = other || { name:"Other / renamed links", site:null, people:{}, minutes:0, actions:0, opens:0, tracked:false };
+          row = other;
+        }
+        row.opens += n;
+      } else if (k.kind === "tool" && bySite[k.site]){
+        row = bySite[k.site]; row.actions += n;
+      } else {
+        other = other || { name:"Other / renamed links", site:null, people:{}, minutes:0, actions:0, opens:0, tracked:false };
+        row = other; row.actions += n;
+      }
+      if (person) row.people[u.email] = 1;
+    });
   });
-  h += '</div>';
+  if (other) list.push(other);
+  if (P) P.people.forEach(function(x){
+    Object.keys(x.sites || {}).forEach(function(site){
+      if (!bySite[site] || !x.sites[site]) return;
+      bySite[site].minutes += x.sites[site];
+      bySite[site].people[x.email] = 1;
+    });
+  });
+  return list;
+}
 
-  h += '<h3>Who used what</h3><table><thead><tr><th>Person</th>' +
-       '<th style="text-align:right">PBS8</th><th style="text-align:right">LoanID</th><th style="text-align:right">TOPA</th>' +
-       '<th style="text-align:right">GreyHub</th><th>Last seen</th></tr></thead><tbody>';
-  if (!people.length){
-    h += '<tr><td colspan="6" class="anx-empty">Nothing recorded in this window.</td></tr>';
+/* person rows: everyone with any actions or active time in the window */
+function buildPeople(rows, P){
+  var map = {};
+  function get(email){
+    return map[email] || (map[email] = { email:email, minutes:0, today:0, week:0, days:0, actions:0,
+      per:{}, lastMs:0, lastAction:"" });
   }
-  people.forEach(function(p){
-    h += '<tr><td class="nm">' + esc(p.email) + '</td>' +
-         '<td class="num' + (p.per.pbs8 ? "" : " zero") + '">' + p.per.pbs8 + '</td>' +
-         '<td class="num' + (p.per.loanid ? "" : " zero") + '">' + p.per.loanid + '</td>' +
-         '<td class="num' + (p.per.topa ? "" : " zero") + '">' + p.per.topa + '</td>' +
-         '<td class="num' + (p.per.greyhub ? "" : " zero") + '">' + p.per.greyhub + '</td>' +
-         '<td class="when">' + esc(shortDate(p.last)) +
-           '<span class="what">' + (p.lastAction ? esc(prettyAction(p.lastAction)) : "\u00A0") + '</span>' +
-         '</td></tr>';
+  rows.forEach(function(u){
+    var x = get(u.email);
+    x.days = Math.max(x.days, u.days || 0);
+    var t = u.last ? Date.parse(u.last) : 0;
+    if (t > x.lastMs){ x.lastMs = t; x.lastAction = u.lastAction || ""; }
+    Object.keys(u.actions || {}).forEach(function(a){
+      var k = actionKind(a), n = u.actions[a];
+      if (k.kind === "tool"){
+        x.actions += n;
+        var pt = x.per[k.site] || (x.per[k.site] = { minutes:0, actions:0 });
+        pt.actions += n;
+      } else if (k.kind === "other") x.actions += n;      /* still counted, as in the tool table */
+    });
   });
-  h += '</tbody></table>';
+  if (P) P.people.forEach(function(q){
+    var x = get(q.email);
+    x.minutes = q.total || 0; x.today = q.today || 0; x.week = q.week || 0;
+    x.days = Math.max(x.days, q.days || 0);
+    if ((q.last || 0) > x.lastMs) x.lastMs = q.last;
+    Object.keys(q.sites || {}).forEach(function(site){
+      var pt = x.per[site] || (x.per[site] = { minutes:0, actions:0 });
+      pt.minutes += q.sites[site];
+    });
+  });
+  return Object.keys(map).map(function(k){
+    var x = map[k], best = null;
+    Object.keys(x.per).forEach(function(site){
+      var v = x.per[site], score = v.minutes * 1000 + v.actions;
+      if (!best || score > best.score) best = { site:site, score:score };
+    });
+    x.main = best ? (TRACKED_ID[best.site] ? TRACKED_ID[best.site].name : best.site) : "";
+    x.auto = isAuto(x.email);
+    return x;
+  });
+}
 
-  h += '<div id="anxActive">' + activeHtml(presence) + '</div>';
+function sortPeople(list){
+  var k = anxSort.key, d = anxSort.dir;
+  return list.sort(function(a, b){
+    if (a.auto !== b.auto) return a.auto ? 1 : -1;
+    var va = a[k], vb = b[k];
+    if (k === "email" || k === "main"){ va = String(va || ""); vb = String(vb || ""); return d * va.localeCompare(vb); }
+    if (va === vb) return b.minutes - a.minutes || b.actions - a.actions;
+    return d * ((va || 0) - (vb || 0));
+  });
+}
 
-  var toolKeys = Object.keys(tools).sort(function(a, b){ return tools[b].n - tools[a].n; });
-  h += '<h3>Links opened from GreyHub</h3><table><thead><tr><th>Tool</th>' +
-       '<th style="text-align:right">Opens</th><th style="text-align:right">People</th>' +
+function chartHtml(P, j){
+  if (!P || !P.byDay) return '';
+  var keys = Object.keys(P.byDay).sort();
+  if (!keys.length) return '<p class="anx-empty">No active time recorded in this window yet.</p>';
+  /* from the first day with data (or the window's start) to today, every day shown */
+  var end = new Date(), days = [];
+  var startMs = Math.max(Date.parse(keys[0] + "T00:00:00Z"), Date.now() - (j.days - 1) * 86400000);
+  for (var t = Date.parse(new Date(startMs).toISOString().slice(0, 10) + "T00:00:00Z"); t <= end.getTime(); t += 86400000)
+    days.push(new Date(t).toISOString().slice(0, 10));
+  var max = 0;
+  days.forEach(function(d){ max = Math.max(max, (P.byDay[d] || {}).minutes || 0); });
+  var top = max <= 60 ? 60 : Math.ceil(max / 60) * 60;           /* a whole-hour top line */
+  var h = '<div class="ux-chart" id="uxChart"><div class="ux-plot">' +
+          '<div class="ux-grid" style="top:0"><span>' + fmtMins(top) + '</span></div>' +
+          '<div class="ux-grid" style="top:50%"><span>' + fmtMins(Math.round(top / 2)) + '</span></div>';
+  days.forEach(function(d){
+    var v = P.byDay[d] || { minutes:0, people:0 }, acts = (j.byDay || {})[d] || 0;
+    h += '<div class="ux-col' + (v.minutes ? '' : ' zero') + '" data-d="' + d + '" data-m="' + v.minutes +
+         '" data-p="' + v.people + '" data-a="' + acts + '">' +
+         '<div class="ux-bar" style="height:' + (v.minutes ? Math.max(2, v.minutes / top * 100) : 0) + '%"></div></div>';
+  });
+  h += '</div><div class="ux-x"><span>' + dayLabel(days[0]) + '</span>' +
+       (days.length > 2 ? '<span>' + dayLabel(days[Math.floor(days.length / 2)]) + '</span>' : '') +
+       '<span>' + dayLabel(days[days.length - 1]) + '</span></div><div class="ux-tip" id="uxTip"></div></div>';
+  return h;
+}
+
+function renderAnalytics(j, presence){
+  anxLast = { j:j, p:presence };
+  var P = presence && presence.configured ? presence : null;
+  var rows = j.rows || [];
+  var tools = buildToolRows(rows, P), people = sortPeople(buildPeople(rows, P));
+  var span = j.days >= 400 ? "all time" : "last " + j.days + " days";
+
+  /* ----- headline totals ----- */
+  var onlineN = P ? P.online.length : 0;
+  var humans = people.filter(function(x){ return !x.auto; });
+  var todayPeople = humans.filter(function(x){ return x.today > 0; });
+  var todayMins = todayPeople.reduce(function(s, x){ return s + x.today; }, 0);
+  var totMins = people.reduce(function(s, x){ return s + x.minutes; }, 0);
+  var totActs = people.reduce(function(s, x){ return s + x.actions; }, 0);
+  var withTime = humans.filter(function(x){ return x.minutes > 0; }).length;
+  var h = '<div class="ux-kpis">' +
+    '<div class="ux-kpi' + (onlineN ? ' live' : '') + '"><div class="k">Online now</div><div class="v">' + onlineN + '</div>' +
+      '<div class="n">' + (onlineN === 1 ? "person" : "people") + ' on a tool right now</div></div>' +
+    '<div class="ux-kpi"><div class="k">Active today</div><div class="v">' + todayPeople.length + '</div>' +
+      '<div class="n">' + fmtMins(todayMins) + ' of active time</div></div>' +
+    '<div class="ux-kpi"><div class="k">People</div><div class="v">' + humans.length + '</div>' +
+      '<div class="n">used a tool, ' + span + '</div></div>' +
+    '<div class="ux-kpi"><div class="k">Active time</div><div class="v">' + fmtMins(totMins) + '</div>' +
+      '<div class="n">' + (withTime ? '\u2248 ' + fmtMins(Math.round(totMins / withTime)) + ' per person' : 'none yet') + '</div></div>' +
+    '<div class="ux-kpi"><div class="k">Actions</div><div class="v">' + num(totActs) + '</div>' +
+      '<div class="n">loads, searches, edits, downloads</div></div>' +
+    '</div>';
+
+  /* ----- online now ----- */
+  if (P && P.online.length) h += '<div id="anxOnline">' + onlineHtml(P).replace('<h3>Online now</h3>', '') + '</div>';
+
+  /* ----- daily chart ----- */
+  h += '<div class="ux-sec"><h3>Active time per day</h3><span class="hint">whole team \u00B7 hover a day for detail</span></div>' +
+       chartHtml(P, j);
+
+  /* ----- by tool ----- */
+  var tMins = 0, tActs = 0, tOpens = 0, tPeople = {};
+  tools.forEach(function(t){ tMins += t.minutes; tActs += t.actions; tOpens += t.opens;
+                             Object.keys(t.people).forEach(function(e){ tPeople[e] = 1; }); });
+  var maxShare = Math.max.apply(null, tools.map(function(t){ return pct(t.minutes, tMins); }).concat([1]));
+  var overlap = tMins - totMins;
+  h += '<div class="ux-sec"><h3>By tool</h3><span class="hint">' + span + '</span></div>' +
+       '<table class="ux-table"><thead><tr>' +
+       '<th class="l">Tool</th>' +
+       '<th title="Different people who used it at all in the window">People</th>' +
+       '<th title="Minutes it was open, visible and in use">Active time</th>' +
+       '<th title="This tool\u2019s share of all active time">Share of time</th>' +
+       '<th title="Logged events: loads, searches, edits, downloads">Actions</th>' +
+       '<th title="Times it was opened from a GreyHub link">Opened from GreyHub</th>' +
        '</tr></thead><tbody>';
-  if (!toolKeys.length){
-    h += '<tr><td colspan="3" class="anx-empty">No link clicks recorded yet.</td></tr>';
-  }
-  toolKeys.forEach(function(k){
-    h += '<tr><td class="nm">' + esc(TOOL_NAMES[k] || titleish(k)) + '</td>' +
-         '<td class="num">' + tools[k].n + '</td>' +
-         '<td class="num">' + Object.keys(tools[k].users).length + '</td></tr>';
+  tools.forEach(function(t){
+    var share = pct(t.minutes, tMins), np = Object.keys(t.people).length;
+    h += '<tr><td class="nm">' + esc(t.name) + (t.tracked ? '' : '<span class="sub">link only \u2014 opens are all we see</span>') + '</td>' +
+         cell(np, num) +
+         (t.tracked ? cell(t.minutes, fmtMins) : '<td class="z">\u2014</td>') +
+         (t.tracked ? '<td><div class="ux-share"><i style="width:' + Math.round(share / maxShare * 90) + 'px"></i><span>' + share + '%</span></div></td>'
+                    : '<td class="z">\u2014</td>') +
+         (t.tracked ? cell(t.actions, num) : '<td class="z">\u2014</td>') +
+         cell(t.opens, num) + '</tr>';
   });
-  h += '</tbody></table>';
+  h += '<tr class="total"><td class="nm">Total' + (overlap > 0
+         ? '<span class="sub">time counted once \u2014 ' + fmtMins(overlap) + ' had two tools open together</span>' : '') +
+       '</td><td>' + num(Object.keys(tPeople).length) + '</td><td>' + fmtMins(totMins) +
+       '</td><td>100%</td><td>' + num(tActs) + '</td><td>' + num(tOpens) + '</td></tr></tbody></table>';
 
-  h += '<p class="anx-note">Counts are per person per day and the Worker collapses ' +
-       'the same action within 60 seconds, so these are activity levels rather than ' +
-       'exact click totals. Bare <code>signin</code> events are shared by every ' +
-       'sites and are left out of the per-site columns. What someone was last doing ' +
-       'is only recorded from the Worker deploy onward, so older rows show a time ' +
-       'with nothing under it. Active time counts a minute whenever a tool is open, ' +
-       'visible and in use - a hidden tab or five minutes without the mouse or ' +
-       'keyboard stops the clock - and two tools open at once count once in a ' +
-       'person\u2019s total. It is recorded from 21 October 2026.</p>';
+  /* ----- by person ----- */
+  var cols = [["email","Person","l"],["minutes","Active time"],["today","Today"],["week","Last 7 days"],
+              ["days","Days used"],["actions","Actions"],["main","Main tool","l"],["lastMs","Last seen","l"]];
+  var tips = { minutes:"Minutes any tool was open, visible and in use - two tools at once count once",
+               today:"Active time since midnight UTC", week:"Active time over the last 7 days",
+               days:"Days with any activity in the window", actions:"Logged events across every tool",
+               main:"The tool they spent the most time in", lastMs:"Most recent activity, and what it was" };
+  h += '<div class="ux-sec"><h3>By person</h3><span class="hint">' + span + ' \u00B7 click a person for their tools \u00B7 click a heading to sort</span></div>' +
+       '<table class="ux-table" id="uxPeople"><thead><tr>';
+  cols.forEach(function(c){
+    var on = anxSort.key === c[0];
+    h += '<th data-sort="' + c[0] + '" class="' + (c[2] || '') + (on ? ' on' + (anxSort.dir > 0 ? ' asc' : '') : '') + '"' +
+         (tips[c[0]] ? ' title="' + esc(tips[c[0]]) + '"' : '') + '>' + c[1] + '</th>';
+  });
+  h += '</tr></thead><tbody>';
+  if (!people.length) h += '<tr><td colspan="8" class="anx-empty">Nothing recorded in this window.</td></tr>';
+  var sum = { minutes:0, today:0, week:0, actions:0 };
+  people.forEach(function(x){
+    sum.minutes += x.minutes; sum.today += x.today; sum.week += x.week; sum.actions += x.actions;
+    var open = !!anxOpenRows[x.email];
+    h += '<tr class="person' + (open ? ' open' : '') + '" data-email="' + esc(x.email) + '">' +
+         '<td class="nm" title="' + esc(x.email) + '">' + esc(x.auto ? autoName(x.email) : personName(x.email)) +
+           (x.auto ? '<span class="sub">automated \u2014 not counted as a person</span>' : '') + '</td>' +
+         cell(x.minutes, fmtMins) + cell(x.today, fmtMins) + cell(x.week, fmtMins) +
+         cell(x.days, num) + cell(x.actions, num) +
+         '<td class="l">' + esc(x.main || '\u2014') + '</td>' +
+         '<td class="ux-last">' + (x.lastMs ? esc(shortDate(new Date(x.lastMs).toISOString())) : '\u2014') +
+           (x.lastAction ? '<span class="what">' + esc(prettyAction(x.lastAction)) + '</span>' : '') + '</td></tr>';
+    if (open){
+      var per = TRACKED.filter(function(t){ return x.per[t.id]; }).map(function(t){ return { t:t, v:x.per[t.id] }; })
+                       .sort(function(a, b){ return b.v.minutes - a.v.minutes || b.v.actions - a.v.actions; });
+      var pm = Math.max.apply(null, per.map(function(q){ return q.v.minutes; }).concat([1]));
+      h += '<tr class="ux-detail"><td colspan="8">' + (per.length ? '<div class="ux-mini">' +
+           per.map(function(q){
+             return '<span class="t">' + esc(q.t.name) + '</span>' +
+                    '<span class="b" style="width:' + (q.v.minutes ? Math.max(3, q.v.minutes / pm * 100) : 0) + '%"></span>' +
+                    '<span class="v">' + fmtMins(q.v.minutes) + '</span>' +
+                    '<span class="a">' + num(q.v.actions) + ' actions</span>';
+           }).join('') + '</div>' : '<span class="ux-last">No tool detail for this window.</span>') + '</td></tr>';
+    }
+  });
+  h += '<tr class="total"><td class="nm">' + humans.length + ' ' + (humans.length === 1 ? 'person' : 'people') + '</td>' +
+       '<td>' + fmtMins(sum.minutes) + '</td><td>' + fmtMins(sum.today) + '</td><td>' + fmtMins(sum.week) + '</td>' +
+       '<td>\u2014</td><td>' + num(sum.actions) + '</td><td class="l"></td><td class="l"></td></tr></tbody></table>';
+
+  /* ----- what the numbers mean ----- */
+  h += '<div class="ux-defs">' +
+       '<b>Active time</b><span>Minutes a tool was open, visible and in use. A hidden tab or five minutes without the ' +
+       'mouse or keyboard stops the clock. Recorded from 21 Oct 2026. Two tools open at once count in both tools\u2019 rows ' +
+       'but once in every total, so the rows can add up to more than the Total line.</span>' +
+       '<b>Actions</b><span>Logged events \u2014 loads, searches, edits, downloads. The same action from the same person ' +
+       'within a minute counts once, so read these as activity levels, not exact clicks. Sign-ins and the spin game are left out.</span>' +
+       '<b>Opened from GreyHub</b><span>Clicks on a tool\u2019s link here. For the tools that do not check in, it is the only measure.</span>' +
+       '<b>Days</b><span>Midnight to midnight UTC (8pm Eastern).</span></div>';
 
   document.getElementById("anxBody").innerHTML = h;
-  document.getElementById("anxSub").textContent =
-    rows.length + " people \u00B7 last " + j.days + " days";
+  document.getElementById("anxSub").textContent = humans.length + " people \u00B7 " + span;
+  wireAnalytics();
+}
+
+function wireAnalytics(){
+  var tbl = document.getElementById("uxPeople");
+  if (tbl){
+    tbl.querySelectorAll("th[data-sort]").forEach(function(th){
+      th.addEventListener("click", function(e){
+        e.stopPropagation();
+        var k = th.getAttribute("data-sort");
+        if (anxSort.key === k) anxSort.dir = -anxSort.dir;
+        else anxSort = { key:k, dir:(k === "email" || k === "main") ? 1 : -1 };
+        renderAnalytics(anxLast.j, anxLast.p);
+      });
+    });
+    tbl.querySelectorAll("tr.person").forEach(function(tr){
+      tr.addEventListener("click", function(){
+        var em = tr.getAttribute("data-email");
+        anxOpenRows[em] = !anxOpenRows[em];
+        renderAnalytics(anxLast.j, anxLast.p);
+      });
+    });
+  }
+  var chart = document.getElementById("uxChart"), tip = document.getElementById("uxTip");
+  if (chart && tip){
+    chart.querySelectorAll(".ux-col").forEach(function(col){
+      col.addEventListener("mouseenter", function(){
+        var m = +col.getAttribute("data-m"), pp = +col.getAttribute("data-p"), a = +col.getAttribute("data-a");
+        tip.innerHTML = '<b>' + dayLabel(col.getAttribute("data-d")) + '</b><br>' +
+          fmtMins(m) + ' active <span class="m">\u00B7 ' + pp + (pp === 1 ? ' person' : ' people') + '</span>' +
+          (a ? '<br><span class="m">' + a + (a === 1 ? ' account' : ' accounts') + ' logged activity</span>' : '');
+        var cr = chart.getBoundingClientRect(), r = col.getBoundingClientRect();
+        var x = Math.min(Math.max(r.left - cr.left + r.width / 2, 70), cr.width - 70);
+        tip.style.left = x + "px"; tip.style.top = "-6px"; tip.style.opacity = 1;
+      });
+      col.addEventListener("mouseleave", function(){ tip.style.opacity = 0; });
+    });
+  }
 }
 
 /* ---------- directory dropdown: close on outside click and on Escape ---------- */
