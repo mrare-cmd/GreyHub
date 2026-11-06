@@ -119,6 +119,10 @@ a{color:inherit;text-decoration:none}
 .anx-me[aria-pressed="true"]{color:var(--ink);background:rgba(176,196,222,.12);border-color:rgba(176,196,222,.45)}
 .anx-me[aria-pressed="true"]::before{background:currentColor}
 .anx-me + .anx-range{margin-left:0}
+.ux-table td:not(.nm):not(.l):not(.ux-last){white-space:nowrap}
+.ux-sec .ux-seg{margin-left:auto}
+.ux-sec .ux-seg button{padding:4px 11px}
+.ux-detail .ux-when{display:block;margin:0 0 8px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
 .anx-close{background:none;border:0;cursor:pointer;font-family:var(--f-body);
   font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3)}
 .anx-close:hover{color:var(--accent)}
@@ -2548,6 +2552,7 @@ function shortDate(iso){
 
 function openAnalytics(){
   anx.classList.add("open");
+  anxToolFetch = {};                       /* a failed longer window is tried again */
   renderRange();
   loadAnalytics();
 }
@@ -2706,6 +2711,42 @@ document.getElementById("anxMe").addEventListener("click", function(){
   syncMeButton();
   if (anxLast) renderAnalytics(anxLast.j, anxLast.p);
 });
+/* the By-tool table has its own window: today, 7, 30 or 90 days. The Worker
+   sends every figure per day, so a window inside the loaded report is cut from
+   it; a longer one is fetched (and cached) on its own. */
+var anxToolDays = 30, anxToolFetch = {};
+try { var tdv = +localStorage.getItem("greyhub.anxToolDays"); if ([1, 7, 30, 90].indexOf(tdv) > -1) anxToolDays = tdv; } catch (e) {}
+function utcDay(ms){ return new Date(ms).toISOString().slice(0, 10); }
+function sinceDay(n){ return utcDay(Date.now() - (n - 1) * 86400000); }
+/* the report cut to the last n days; null if the data has no daily detail */
+function sliceToDays(j, P, n){
+  var since = sinceDay(n), ok = true;
+  var rows = (j.rows || []).map(function(u){
+    if (!u.da){ ok = false; return null; }
+    var a = {}, any = false;
+    Object.keys(u.da).forEach(function(d){
+      if (d < since) return;
+      any = true;
+      Object.keys(u.da[d]).forEach(function(k){ a[k] = (a[k] || 0) + u.da[d][k]; });
+    });
+    return any ? { email:u.email, actions:a } : null;
+  }).filter(Boolean);
+  var P2 = null;
+  if (P){
+    var people = P.people.map(function(x){
+      if (!x.sd || !x.dm){ ok = false; return null; }
+      var sites = {}, total = 0;
+      Object.keys(x.sd).forEach(function(site){
+        Object.keys(x.sd[site]).forEach(function(d){ if (d >= since) sites[site] = (sites[site] || 0) + x.sd[site][d]; });
+      });
+      Object.keys(x.dm).forEach(function(d){ if (d >= since) total += x.dm[d]; });
+      return total ? { email:x.email, sites:sites, total:total } : null;
+    }).filter(Boolean);
+    P2 = Object.assign({}, P, { people:people });
+  }
+  return ok ? { rows:rows, P:P2 } : null;
+}
+
 /* the report and presence with one person taken out, daily figures included */
 function withoutPerson(j, presence, me){
   var rows = (j.rows || []).filter(function(u){ return String(u.email).toLowerCase() !== me; });
@@ -2810,10 +2851,16 @@ function buildPeople(rows, P){
   var map = {};
   function get(email){
     return map[email] || (map[email] = { email:email, minutes:0, today:0, week:0, days:0, actions:0,
-      per:{}, lastMs:0, lastAction:"" });
+      per:{}, tdy:{}, lastMs:0, lastAction:"" });
   }
+  var tday = utcDay(Date.now());
+  function tdy(x, site){ return x.tdy[site] || (x.tdy[site] = { minutes:0, actions:0 }); }
   rows.forEach(function(u){
     var x = get(u.email);
+    Object.keys((u.da && u.da[tday]) || {}).forEach(function(a){
+      var k = actionKind(a);
+      if (k.kind === "tool") tdy(x, k.site).actions += u.da[tday][a];
+    });
     x.days = Math.max(x.days, u.days || 0);
     var t = u.last ? Date.parse(u.last) : 0;
     if (t > x.lastMs){ x.lastMs = t; x.lastAction = u.lastAction || ""; }
@@ -2834,6 +2881,9 @@ function buildPeople(rows, P){
     Object.keys(q.sites || {}).forEach(function(site){
       var pt = x.per[site] || (x.per[site] = { minutes:0, actions:0 });
       pt.minutes += q.sites[site];
+    });
+    Object.keys(q.sd || {}).forEach(function(site){
+      if (q.sd[site][tday]) tdy(x, site).minutes += q.sd[site][tday];
     });
   });
   return Object.keys(map).map(function(k){
@@ -2894,6 +2944,7 @@ function renderAnalytics(j, presence){
   var P = presence && presence.configured ? presence : null;
   var rows = j.rows || [];
   var tools = buildToolRows(rows, P), people = sortPeople(buildPeople(rows, P));
+  var totMins;
   var span = j.days >= 400 ? "all time" : "last " + j.days + " days";
 
   /* ----- headline totals ----- */
@@ -2901,7 +2952,7 @@ function renderAnalytics(j, presence){
   var humans = people.filter(function(x){ return !x.auto; });
   var todayPeople = humans.filter(function(x){ return x.today > 0; });
   var todayMins = todayPeople.reduce(function(s, x){ return s + x.today; }, 0);
-  var totMins = people.reduce(function(s, x){ return s + x.minutes; }, 0);
+  totMins = people.reduce(function(s, x){ return s + x.minutes; }, 0);
   var totActs = people.reduce(function(s, x){ return s + x.actions; }, 0);
   var withTime = humans.filter(function(x){ return x.minutes > 0; }).length;
   var h = '<div class="ux-kpis">' +
@@ -2924,14 +2975,46 @@ function renderAnalytics(j, presence){
   h += '<div class="ux-sec"><h3>Active time per day</h3><span class="hint">whole team \u00B7 hover a day for detail</span></div>' +
        chartHtml(P, j);
 
-  /* ----- by tool ----- */
+  /* ----- by tool: today / 7 / 30 / 90 days, independent of the panel's range ----- */
+  var TD = anxToolDays, toolNote = '', toolsLoading = false;
+  var src = { j:j, p:presence };
+  if (TD > j.days){
+    var c = anxCache[TD];
+    if (c){ src = { j:c.j, p:c.presence }; if (anxHideMe && me) src = withoutPerson(src.j, src.p, me); }
+    else if (anxToolFetch[TD] === "failed"){
+      toolNote = '<p class="anx-empty">Could not load ' + TD + ' days \u2014 showing ' + span + '.</p>';
+      TD = j.days;
+    } else {
+      toolsLoading = true;
+      if (!anxToolFetch[TD]){
+        anxToolFetch[TD] = "loading";
+        var again = function(){ if (anxLast && anx.classList.contains("open")) renderAnalytics(anxLast.j, anxLast.p); };
+        fetchAnalytics(TD).then(function(res){ anxToolFetch[TD] = (res && res.j && res.j.ok) ? null : "failed"; again(); })
+                          .catch(function(){ anxToolFetch[TD] = "failed"; again(); });
+      }
+    }
+  }
+  var sp = src.p && src.p.configured ? src.p : null;
+  var cut = sliceToDays(src.j, sp, TD);
+  if (cut){ tools = buildToolRows(cut.rows, cut.P);
+            totMins = cut.P ? cut.P.people.reduce(function(s2, x){ return s2 + x.total; }, 0) : 0; }
+  else if (TD !== src.j.days){
+    toolNote = '<p class="anx-empty">Daily detail is not available yet — showing ' + span + '.</p>';
+    TD = src.j.days;
+  }
+  var tdLabel = { 1:"Today", 7:"7d", 30:"30d", 90:"90d" };
+  h += '<div class="ux-sec"><h3>By tool</h3><span class="hint">' +
+       (TD === 1 ? "today (since midnight UTC)" : "last " + TD + " days") + '</span>' +
+       '<span class="anx-range ux-seg" id="uxToolDays">' + [1, 7, 30, 90].map(function(d){
+         return '<button type="button" data-d="' + d + '"' + (d === anxToolDays ? ' class="on"' : '') + '>' + tdLabel[d] + '</button>';
+       }).join('') + '</span></div>' + toolNote;
   var tMins = 0, tActs = 0, tOpens = 0, tPeople = {};
   tools.forEach(function(t){ tMins += t.minutes; tActs += t.actions; tOpens += t.opens;
                              Object.keys(t.people).forEach(function(e){ tPeople[e] = 1; }); });
   var maxShare = Math.max.apply(null, tools.map(function(t){ return pct(t.minutes, tMins); }).concat([1]));
   var overlap = tMins - totMins;
-  h += '<div class="ux-sec"><h3>By tool</h3><span class="hint">' + span + '</span></div>' +
-       '<table class="ux-table"><thead><tr>' +
+  if (toolsLoading) h += '<p class="anx-empty">Loading ' + TD + ' days\u2026</p>';
+  else { h += '<table class="ux-table"><thead><tr>' +
        '<th class="l">Tool</th>' +
        '<th title="Different people who used it at all in the window">People</th>' +
        '<th title="Minutes it was open, visible and in use">Active time</th>' +
@@ -2953,6 +3036,7 @@ function renderAnalytics(j, presence){
          ? '<span class="sub">time counted once \u2014 ' + fmtMins(overlap) + ' had two tools open together</span>' : '') +
        '</td><td>' + num(Object.keys(tPeople).length) + '</td><td>' + fmtMins(totMins) +
        '</td><td>100%</td><td>' + num(tActs) + '</td><td>' + num(tOpens) + '</td></tr></tbody></table>';
+  }
 
   /* ----- by person ----- */
   var cols = [["email","Person","l"],["minutes","Active time"],["today","Today"],["week","Last 7 days"],
@@ -2961,7 +3045,7 @@ function renderAnalytics(j, presence){
                today:"Active time since midnight UTC", week:"Active time over the last 7 days",
                days:"Days with any activity in the window", actions:"Logged events across every tool",
                main:"The tool they spent the most time in", lastMs:"Most recent activity, and what it was" };
-  h += '<div class="ux-sec"><h3>By person</h3><span class="hint">' + span + ' \u00B7 click a person for their tools \u00B7 click a heading to sort</span></div>' +
+  h += '<div class="ux-sec"><h3>By person</h3><span class="hint">' + span + ' \u00B7 click a person for what they used today \u00B7 click a heading to sort</span></div>' +
        '<table class="ux-table" id="uxPeople"><thead><tr>';
   cols.forEach(function(c){
     var on = anxSort.key === c[0];
@@ -2983,16 +3067,16 @@ function renderAnalytics(j, presence){
          '<td class="ux-last">' + (x.lastMs ? esc(shortDate(new Date(x.lastMs).toISOString())) : '\u2014') +
            (x.lastAction ? '<span class="what">' + esc(prettyAction(x.lastAction)) + '</span>' : '') + '</td></tr>';
     if (open){
-      var per = TRACKED.filter(function(t){ return x.per[t.id]; }).map(function(t){ return { t:t, v:x.per[t.id] }; })
+      var per = TRACKED.filter(function(t){ return x.tdy[t.id]; }).map(function(t){ return { t:t, v:x.tdy[t.id] }; })
                        .sort(function(a, b){ return b.v.minutes - a.v.minutes || b.v.actions - a.v.actions; });
       var pm = Math.max.apply(null, per.map(function(q){ return q.v.minutes; }).concat([1]));
-      h += '<tr class="ux-detail"><td colspan="8">' + (per.length ? '<div class="ux-mini">' +
+      h += '<tr class="ux-detail"><td colspan="8"><span class="ux-when">Today</span>' + (per.length ? '<div class="ux-mini">' +
            per.map(function(q){
              return '<span class="t">' + esc(q.t.name) + '</span>' +
                     '<span class="b" style="width:' + (q.v.minutes ? Math.max(3, q.v.minutes / pm * 100) : 0) + '%"></span>' +
                     '<span class="v">' + fmtMins(q.v.minutes) + '</span>' +
                     '<span class="a">' + num(q.v.actions) + ' actions</span>';
-           }).join('') + '</div>' : '<span class="ux-last">No tool detail for this window.</span>') + '</td></tr>';
+           }).join('') + '</div>' : '<span class="ux-last">Nothing used today.</span>') + '</td></tr>';
     }
   });
   h += '<tr class="total"><td class="nm">' + humans.length + ' ' + (humans.length === 1 ? 'person' : 'people') + '</td>' +
@@ -3016,6 +3100,14 @@ function renderAnalytics(j, presence){
 }
 
 function wireAnalytics(){
+  var seg = document.getElementById("uxToolDays");
+  if (seg) seg.querySelectorAll("button").forEach(function(b){
+    b.addEventListener("click", function(){
+      anxToolDays = +b.getAttribute("data-d");
+      try { localStorage.setItem("greyhub.anxToolDays", String(anxToolDays)); } catch (e) {}
+      renderAnalytics(anxLast.j, anxLast.p);
+    });
+  });
   var tbl = document.getElementById("uxPeople");
   if (tbl){
     tbl.querySelectorAll("th[data-sort]").forEach(function(th){
