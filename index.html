@@ -2345,7 +2345,8 @@ function loadDirectory(){
    history sees neither. */
 var turnTo = null;
 var SITE_BY_URL = [[/HAP-Database/i, "pbs8"], [/greysteel-hampton-roads/i, "loanid"],
-                   [/greysteel-topa/i, "topa"], [/greysteel-owner360/i, "owner360"], [/dc-lender-distress/i, "lenderdistress"]];
+                   [/greysteel-topa/i, "topa"], [/greysteel-owner360/i, "owner360"], [/dc-lender-distress/i, "lenderdistress"],
+                   [/greysteel-marketiq/i, "marketiq"]];
 function siteOfUrl(u){
   for (var i = 0; i < SITE_BY_URL.length; i++) if (SITE_BY_URL[i][0].test(u || "")) return SITE_BY_URL[i][1];
   return null;
@@ -2500,7 +2501,8 @@ var LEGACY_PBS8 = ["dashboard","map_draw","rent_roll","rent_tiers","search_apply
 var TRACKED = [
   { id:"pbs8", name:"PBS8 Database" }, { id:"loanid", name:"LoanID" },
   { id:"topa", name:"TOPA Tracker" },  { id:"owner360", name:"Owner 360" },
-  { id:"lenderdistress", name:"DC Lender Distress" }, { id:"greyhub", name:"GreyHub" }
+  { id:"lenderdistress", name:"DC Lender Distress" }, { id:"marketiq", name:"MarketIQ" },
+  { id:"greyhub", name:"GreyHub" }
 ];
 var TRACKED_ID = {};
 TRACKED.forEach(function(t){ TRACKED_ID[t.id] = t; });
@@ -2514,7 +2516,7 @@ function siteOf(action){
 }
 
 var SITE_LABEL = { pbs8:"PBS8", loanid:"LoanID", topa:"TOPA", owner360:"Owner 360",
-                   lenderdistress:"Lender Distress", greyhub:"GreyHub" };
+                   lenderdistress:"Lender Distress", marketiq:"MarketIQ", greyhub:"GreyHub" };
 
 function titleish(t){
   return String(t).split("-").map(function(w){
@@ -2576,8 +2578,8 @@ function renderRange(){
    Every site behind this sign-in checks in about once a minute while it is
    open, visible and in use. /presence turns that into who is online now
    and active minutes per person, and it refreshes while the panel is open. */
-var PRES_LABEL = { greyhub:"GreyHub", pbs8:"PBS8", loanid:"LoanID", topa:"TOPA", owner360:"Owner 360", lenderdistress:"Lender Distress" };
-var PRES_ORDER = ["pbs8", "loanid", "topa", "owner360", "lenderdistress", "greyhub"];
+var PRES_LABEL = { greyhub:"GreyHub", pbs8:"PBS8", loanid:"LoanID", topa:"TOPA", owner360:"Owner 360", lenderdistress:"Lender Distress", marketiq:"MarketIQ" };
+var PRES_ORDER = ["pbs8", "loanid", "topa", "owner360", "lenderdistress", "marketiq", "greyhub"];
 var presT = null;
 function loadPresence(days){
   return fetch(AUTH_API + "/presence?days=" + (days || anxDays), {
